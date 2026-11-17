@@ -3,7 +3,7 @@
 
 | Référence | SOU9NA-REF-001 |
 |---|---|
-| **Version** | 2.3 |
+| **Version** | 2.4 |
 | **Date** | Novembre 2026 |
 | **Statut** | Approuvé — document de travail interne |
 | **Rédaction** | Équipe Sou9na (collectif, sans responsable unique) |
@@ -526,7 +526,7 @@ la fusion en CI/CD.
 
 | # | Règle | Détail |
 |---|---|---|
-| N1 | **Git** | Branche par tâche : `agent-nom/tache` (ex. `juge/pre-check-caution`). Une PR = une fonctionnalité. Relecture obligatoire par un membre ≠ auteur. |
+| N1 | **Git** | Branche de tâche courte créée **depuis sa branche de domaine** (ex. depuis `feat/juge` → `juge/pre-check-caution`). Une PR = une fonctionnalité. Relecture obligatoire par un membre ≠ auteur. Stratégie complète : § 5 bis. |
 | N2 | **Périmètre de dossiers** | Chacun code uniquement dans son périmètre (§11). Modification hors périmètre → accord du responsable du dossier, noté dans la PR. |
 | N3 | **Style Python** | Type hints, docstrings en français, lint (ruff) en CI. |
 | N4 | **Style TypeScript** | Composants fonctionnels, logique métier côté backend uniquement. |
@@ -536,6 +536,64 @@ la fusion en CI/CD.
 | N8 | **Traçabilité** | Chaque appel LLM et chaque envoi WhatsApp journalisé (request_id, durée, tokens, coût, statut). |
 | N9 | **Secrets** | Uniquement dans `.env` local (non commité), GitHub Secrets, variables Render. Checklist de déploiement dans `08-deploiement/`. |
 | N10 | **Definition of Done** | Exigence implémentée + testée + documentée + bilingue (si surface client) + sans donnée personnelle + dans le plafond de coût. |
+
+---
+
+## 5 bis. Stratégie des branches Git (dépôt `github.com/hamza-ouchen/marchepublique`)
+
+> Dépôt officiel du projet. Créé le 17 nov. 2026 ; **14 branches en place** : 2
+> permanentes + 12 de domaine. Aucun push direct : tout passe par **Pull Request**.
+
+### Les 2 branches permanentes
+
+| Branche | Rôle | Environnement Render |
+|---|---|---|
+| `main` | **Production** — code approuvé uniquement | 🚀 Production (données réelles) |
+| `develop` | **Intégration** — toutes les branches de domaine y convergent | 🧪 Test (données fictives) |
+
+### Les 12 branches de domaine (créées depuis `develop`)
+
+| Branche | Membre | Contenu |
+|---|---|---|
+| `feat/regisseur` | 🧭 Mhalli | graphe LangGraph : intake, routage, relances |
+| `feat/mcp-servers` | 🧭 Mhalli | enveloppes des 3 serveurs MCP (dont `base-connaissances`) |
+| `feat/backend` | 🔍 Midouni | FastAPI : `/webhook`, `/cron/run`, `/prospects`, `/admin/waitlist`, `/onboarding` |
+| `feat/inspecteur` | 🔍 Midouni | collecte quotidienne, idempotence, mode `backfill` |
+| `feat/juge` | ⚖️ Ouchen | 4 contrôles, verdicts justifiés |
+| `feat/rag` | ⚖️ Ouchen | moteur d'ingestion + golden set (enveloppe MCP chez Mhalli) |
+| `feat/securite` | 🔴🔵 Ouchen | équipe rouge (≥ 15 scénarios) + équipe bleue |
+| `feat/deploy` | 🚀 Ouchen | CI/CD, Render, secrets |
+| `feat/concierge` | 💬 Abdelmoughit | agent CONCIERGE (conversation + gabarit + envoi intégré) |
+| `feat/frontend` | 💬 Abdelmoughit | dashboard Next.js + landing |
+| `feat/compagnon` | 🎯 Outlit | Match /100 + composition du digest |
+| `feat/observabilite` | 🎯 Outlit | traces, tokens/coûts, alertes SLA |
+
+### Le flux (aucune modification directe de `develop` ou `main`)
+
+```
+tâche courte (optionnel) : depuis feat/<domaine> → <agent>/<tâche> (norme N1)
+        │
+feat/<domaine>  ──PR──►  develop      CI : lint + tests + sécurité + évals métier
+        │                             revue par un membre ≠ auteur
+develop         ──PR──►  main         revue collective + sécurité
+        │
+main ──► 🚀 Render Production      develop ──► 🧪 Render Test
+```
+
+- **Une PR = une fonctionnalité** ; la fusion est **bloquée si un seul test échoue** (N5).
+- **`hotfix/<sujet>`** : seul chemin rapide vers la production — créé **depuis `main`**,
+  fusionné vers `main` **et** `develop`, revu par Ouchen + un second membre.
+- **Tâche courte optionnelle** : pour un gros périmètre, une branche de tâche
+  `<agent>/<tâche>` (ex. `juge/pre-check-caution`) est créée depuis la branche de
+  domaine, puis fusionnée dedans — la branche de domaine reste le point de passage.
+
+### Règles de protection à activer sur GitHub (Settings → Branches)
+
+| Branche | Règle |
+|---|---|
+| `main` | ❌ push direct · PR obligatoire · 1 relecteur minimum ≠ auteur · CI verte obligatoire |
+| `develop` | ❌ push direct · PR obligatoire · CI verte obligatoire |
+| Secrets | jamais dans un commit — uniquement GitHub Secrets / variables Render (N9) |
 
 ---
 
@@ -671,3 +729,4 @@ tout élargissement des sources.
 | 2.1 | Nov. 2026 | Agentic AI et LangGraph en dossiers de racine (04) ; répartition des frameworks par agent validée (§ 2.3) ; ajout du rapport de synthèse v2 et du BPMN métier dans `11-documentation/` |
 | 2.2 | Nov. 2026 | Ajout des contrats d'entrée/sortie par agent — formats JSON, règles de plausibilité, contrats MCP (§ 4.3) — et du jeu de simulation autonome T1–T7 avec fixtures de référence (§ 4.4) ; intégration au plan de première semaine (§ 9) |
 | 2.3 | Nov. 2026 | **CONCIERGE unique émetteur** : envoi intégré dans l'agent (module isolé WhatsApp Cloud API + Brevo), suppression du serveur MCP d'envoi (3 serveurs MCP) ; parcours d'inscription officiel aligné sur le projet original (landing = file d'attente, email obligatoire / WhatsApp facultatif, approbation admin, lien 7 jours sur les 2 canaux, profil + mot de passe, essai 14 jours, canaux opt-in) ; chatbot visiteur/client ; répartition RAG (Ouchen : ingestion + golden set · Mhalli : enveloppe MCP) ; schéma base à 10 tables (`prospects`, `invitations`) ; **mode `backfill` d'INSPECTEUR au lancement** ; doc coloré v3 |
+| 2.4 | Nov. 2026 | Stratégie des branches Git (§ 5 bis) : dépôt `marchepublique` initialisé, 14 branches en place (2 permanentes + 12 de domaine), flux PR + règles de protection GitHub ; norme N1 alignée |
