@@ -1,0 +1,35 @@
+# Secrets — JAMAIS commités (les clés vont dans GitHub Secrets / variables Render)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+
+# Fixtures volumineuses (garder les fixtures de référence, exclure les données réelles)
+fixtures/reel/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs et traces
+*.log
+langsmith/
+
+# Build / cache
+.turbo/
+coverage/

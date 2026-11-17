@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<title>Sou9na — Rapport de synthèse stratégique</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; color: #1d2b3a; font-size: 11.5px; line-height: 1.5; }
+  .page { width: 210mm; height: 297mm; padding: 14mm 16mm; page-break-after: always; position: relative; background: #fff; }
+  .page:last-child { page-break-after: auto; }
+  .footer { position: absolute; bottom: 7mm; left: 16mm; right: 16mm; font-size: 9px; color: #8a97a5; display: flex; justify-content: space-between; border-top: 1px solid #e4e9ee; padding-top: 2.5mm; }
+  h1 { font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif; font-size: 21px; color: #0B2239; margin-bottom: 1.5mm; }
+  h2 { font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif; font-size: 15px; color: #0B2239; margin: 4.5mm 0 2mm; border-left: 4px solid #B3282D; padding-left: 3.5mm; }
+  h3 { font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #0B6E4F; margin: 3.5mm 0 1.5mm; }
+  p { margin-bottom: 2mm; }
+  .small { font-size: 9px; color: #778391; }
+  ul { margin: 0 0 2mm 5mm; } li { margin-bottom: 1.2mm; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.8px; margin-bottom: 2.5mm; }
+  th { background: #0B2239; color: #fff; padding: 1.6mm; text-align: left; font-size: 9.3px; }
+  td { padding: 1.5mm 1.6mm; border-bottom: 1px solid #e4e9ee; vertical-align: top; }
+  .b { font-weight: 700; }
+  .agent { display: flex; gap: 2.5mm; margin-bottom: 1.6mm; align-items: baseline; }
+  .agent .nm { font-weight: 800; color: #0B2239; white-space: nowrap; }
+  .agent .ds { flex: 1; }
+  .chip { display: inline-block; font-size: 8px; font-weight: 800; padding: 0.4mm 2mm; border-radius: 3px; vertical-align: middle; white-space: nowrap; }
+  .lg { background: #E3ECF5; color: #2E6FAF; }
+  .aa { background: #E2F2EB; color: #0B6E4F; }
+  .mix { background: #FDF6E3; color: #7A5C00; }
+  .note { background: #F4F7FA; border-radius: 6px; padding: 2.5mm 3.5mm; font-size: 10px; margin: 2.5mm 0; border-left: 3px solid #C9A227; }
+  .cover { background: linear-gradient(160deg, #0B2239 0%, #12324A 55%, #0B6E4F 100%); color: #fff; display: flex; flex-direction: column; justify-content: center; }
+  .cover h1 { color: #fff; font-size: 34px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ PAGE 1 — COUVERTURE + LA SOLUTION ═══ -->
+<div class="page cover">
+  <h1>Sou9na</h1>
+  <div style="font-size:16px; color:#C9A227; font-weight:700; margin-bottom:6mm">Rapport de synthèse stratégique</div>
+  <div style="font-size:11px; line-height:1.7; max-width:150mm; color:#D9E6F2">
+    Synthèse fondée sur le cahier des charges, l'architecture technique et le rapport
+    concurrentiel fournis.<br><br>
+    <span style="display:inline-block; background:#E3ECF5; color:#2E6FAF; font-weight:800; padding:1mm 3mm; border-radius:3px; margin-right:2mm">LangGraph</span>
+    orchestration, pipelines de données, veille, observabilité<br>
+    <span style="display:inline-block; background:#E2F2EB; color:#0B6E4F; font-weight:800; padding:1mm 3mm; border-radius:3px; margin:2mm 2mm 0 0">Agentic AI</span>
+    agents d'analyse, verdict, matching, conversation<br>
+    <span style="display:inline-block; background:#FDF6E3; color:#7A5C00; font-weight:800; padding:1mm 3mm; border-radius:3px; margin-top:2mm">Agentic AI + LangGraph</span>
+    défense de sécurité (équipe bleue)
+  </div>
+  <div style="margin-top:auto; font-size:10px; color:#CFE3D8">Projet à construire — Novembre 2026 · 5 pages</div>
+</div>
+
+<!-- ═══ PAGE 2 — LA SOLUTION (sections 1–3) ═══ -->
+<div class="page">
+  <h2>Page 1 — La solution et son adéquation au marché</h2>
+
+  <h3>1. Le problème à résoudre</h3>
+  <p>Les entreprises marocaines, en particulier les TPE et PME, doivent repérer les appels d'offres pertinents, comprendre rapidement les exigences et éviter les erreurs qui peuvent rendre leur candidature irrecevable. Les plateformes existantes couvrent déjà la veille, l'analyse assistée par IA, les scores de compatibilité ou certaines vérifications de dossier. Plusieurs proposent aussi des alertes WhatsApp ou des fonctions Go/No-Go.</p>
+  <p>Sou9na ne peut donc pas se différencier durablement en promettant seulement « des alertes WhatsApp », « de l'IA » ou « un verdict ». Son enjeu est de rendre la décision <b>plus rapide, compréhensible et vérifiable</b>, particulièrement pour les marchés à délais courts et les entreprises moins outillées.</p>
+
+  <h3>2. Proposition de valeur</h3>
+  <p>Sou9na se positionne comme un <b>copilote de décision pour les marchés publics marocains</b>. À partir des avis publiés et du profil confirmé de l'entreprise, le service doit aider son utilisateur à répondre à trois questions :</p>
+  <ul>
+    <li>Ce marché correspond-il à mon entreprise ?</li>
+    <li>Quels critères, pièces ou délais méritent une vérification avant de candidater ?</li>
+    <li>Sur quelles informations et quelles sources repose cette analyse ?</li>
+  </ul>
+  <p>La réponse est diffusée par WhatsApp, email et dashboard, en français ou en arabe, avec une expérience conversationnelle pouvant prendre en charge la Darija. Sou9na informe et accompagne : <b>l'entreprise reste responsable de sa décision et du dépôt de son offre</b>.</p>
+
+  <h3>3. Une architecture cohérente avec cette promesse</h3>
+  <p>L'architecture repose sur six agents à responsabilités distinctes, chacun construit dans le framework qui correspond à sa nature (voir § 3 bis) :</p>
+  <div class="agent"><span class="nm">RÉGISSEUR</span> <span class="chip lg">LangGraph</span><span class="ds">orchestre les demandes et les étapes de traitement.</span></div>
+  <div class="agent"><span class="nm">INSPECTEUR</span> <span class="chip lg">LangGraph</span><span class="ds">collecte les avis et extrait les informations des documents.</span></div>
+  <div class="agent"><span class="nm">COMPAGNON</span> <span class="chip aa">Agentic AI</span><span class="ds">calcule et explique l'adéquation entre entreprise et marché.</span></div>
+  <div class="agent"><span class="nm">JUGE</span> <span class="chip aa">Agentic AI</span><span class="ds">effectue un pré-contrôle d'éligibilité et formule un verdict prudent.</span></div>
+  <div class="agent"><span class="nm">CONCIERGE</span> <span class="chip aa">Agentic AI</span><span class="ds">répond aux questions et consulte la base documentaire.</span></div>
+  <div class="agent"><span class="nm">SENTINELLE</span> <span class="chip lg">LangGraph</span><span class="ds">prévu en phase ultérieure, exploitera les avis d'attribution et les données de prix.</span></div>
+
+  <div class="note"><b>Règle de séparation :</b> le matching est déterministe et explicable, tandis que les modèles de langage servent à l'extraction, à la reformulation et à l'analyse des documents. Les résultats sont soumis à des règles de plausibilité et peuvent être escaladés vers un modèle plus puissant lorsque la complexité et le coût le justifient.</div>
+
+  <p>Le système prévoit également des éléments essentiels à un service opérationnel : données de secours en cas d'indisponibilité du portail, traçabilité des décisions, gestion des doublons, contrôle des accès, points de validation humaine et base documentaire avec citations. Le RAG doit répondre à partir de sources identifiées et transmettre à un superviseur les questions hors périmètre ou insuffisamment documentées.</p>
+
+  <div class="footer"><span>Sou9na — Rapport de synthèse stratégique · v2</span><span>Page 2/5</span></div>
+</div>
+
+<!-- ═══ PAGE 3 — FRAMEWORKS (section 3 bis) ═══ -->
+<div class="page">
+  <h2>3 bis. Frameworks de construction — quel agent dans quel moteur</h2>
+  <p class="small">Deux moteurs sont utilisés. <b>Agentic AI</b> désigne la plateforme de construction d'agents en flux (moteur v1.7) ; <b>LangGraph</b> est le moteur de graphes d'états programmables. Chaque composant est placé dans le moteur qui correspond à sa nature — le tableau indique pourquoi lorsqu'Agentic AI n'est pas retenu.</p>
+
+  <table>
+    <tr><th style="width:34mm">Agent / Fonction</th><th style="width:30mm">Framework</th><th>Justification</th></tr>
+    <tr><td class="b">🧭 RÉGISSEUR</td><td><span class="chip lg">LangGraph</span></td><td>Le routage doit être <b>déterministe et auditable</b> : graphe d'états programmable, relances sur erreur, déclenchement planifié protégé par secret, traçabilité par nœud. Un flux d'agents libre ne garantit ni l'ordre d'exécution ni la reprise après incident.</td></tr>
+    <tr><td class="b">🔍 INSPECTEUR</td><td><span class="chip lg">LangGraph</span></td><td>Pipeline de données planifié : idempotence, validation par schémas, repli de secours, débit maîtrisé — un traitement de masse sans dialogue, non adapté à une plateforme d'agents conversationnelle.</td></tr>
+    <tr><td class="b">🎯 COMPAGNON</td><td><span class="chip aa">Agentic AI</span></td><td>Orchestration souple de la composition du digest multilingue et de la boucle de feedback. Le calcul du Match /100 reste <b>du code déterministe appelé comme outil</b> — la plateforme pilote le flux, jamais le score.</td></tr>
+    <tr><td class="b">⚖️ JUGE</td><td><span class="chip aa">Agentic AI</span></td><td>Analyse documentaire des CPS et rédaction des justifications : raisonnement pas-à-pas, terrain naturel de la plateforme d'agents. Les 4 contrôles d'éligibilité restent des <b>règles appelées en outils</b> avant et après le modèle (garde-fous).</td></tr>
+    <tr><td class="b">💬 CONCIERGE</td><td><span class="chip aa">Agentic AI</span></td><td>Cœur conversationnel multilingue (FR / AR / Darija), FAQ RAG avec citations obligatoires, escalades humaines — la fonction la plus conversationnelle du système.</td></tr>
+    <tr><td class="b">🛰️ SENTINELLE <span class="small">(phase 2)</span></td><td><span class="chip lg">LangGraph</span></td><td>Analyses par lots planifiées (essaim de sous-tâches : PV par mois, par région), agrégations lourdes, <b>aucune interaction utilisateur</b> — pas un agent de dialogue.</td></tr>
+    <tr><td class="b">Serveurs MCP</td><td><span class="chip lg">LangGraph</span></td><td>Services autonomes (portail, base de connaissances, base de données, WhatsApp) exposés aux deux moteurs ; enregistrés et consommés par le RÉGISSEUR.</td></tr>
+    <tr><td class="b">Base de connaissances (RAG)</td><td><span class="chip aa">Agentic AI</span> <span class="chip lg">+ MCP</span></td><td>Les <b>stratégies</b> RAG (naïf → hybride → agentic multi-hop) sont portées par la plateforme d'agents ; l'<b>accès</b> vectoriel passe par le serveur MCP « base-connaissances ».</td></tr>
+    <tr><td class="b">🔐 Équipe rouge (sécurité)</td><td><span class="chip lg">LangGraph</span></td><td>Scripts Python d'attaque : exécutions planifiées, journalisées, rejouables en CI — pas de dialogue, donc pas de plateforme d'agents.</td></tr>
+    <tr><td class="b">🛡️ Équipe bleue (sécurité)</td><td><span class="chip mix">Agentic AI + LangGraph</span></td><td>La défense couvre <b>les deux moteurs</b> : validation des entrées et anti-injection côté flux d'agents, revue des sorties et secrets côté graphe.</td></tr>
+    <tr><td class="b">Observabilité</td><td><span class="chip lg">LangGraph</span></td><td>Traces des runs du graphe (nœuds, durées, tokens, coûts) — l'instrumentation suit le moteur d'exécution.</td></tr>
+  </table>
+
+  <div class="note"><b>À retenir :</b> Agentic AI porte les agents qui <b>raisonnent et dialoguent</b> (COMPAGNON, JUGE, CONCIERGE) ; LangGraph porte ce qui doit être <b>ordonné, planifié et rejouable</b> (RÉGISSEUR, INSPECTEUR, SENTINELLE, MCP, sécurité rouge, observabilité). Dans tous les cas, les sorties de modèles sont validées par schémas et règles de plausibilité avant toute diffusion.</div>
+
+  <div class="footer"><span>Sou9na — Rapport de synthèse stratégique · v2</span><span>Page 3/5</span></div>
+</div>
+
+<!-- ═══ PAGE 4 — DIFFÉRENCIATION, RISQUES, PRIORITÉS ═══ -->
+<div class="page">
+  <h2>4. Une différenciation à préciser</h2>
+  <p>Le rapport concurrentiel montre que les fonctions générales envisagées dans la première version du projet sont déjà présentes chez certains acteurs. Il faut donc présenter Sou9na non comme « la seule plateforme qui analyse les dossiers », mais comme une solution centrée sur :</p>
+  <ul>
+    <li><b>La lisibilité de la décision</b> : distinguer l'adéquation au profil, les critères administratifs, le risque de délai et le niveau de confiance, plutôt que de réduire l'analyse à un score unique.</li>
+    <li><b>La vérifiabilité</b> : rattacher les informations importantes à la page ou au passage source, signaler les données incertaines et afficher la date de vérification.</li>
+    <li><b>L'assistance au bon moment</b> : prioriser les opportunités à échéance courte, notamment les bons de commande et certains marchés de fournitures ou de services.</li>
+    <li><b>L'accessibilité</b> : proposer une expérience mobile, conversationnelle et bilingue, avec un parcours pensé pour les petites entreprises.</li>
+    <li><b>La prudence</b> : présenter le verdict comme une aide à la décision, non comme une garantie de conformité ou de succès.</li>
+  </ul>
+
+  <h2 style="margin-top:3mm">Page 2 — Avantages concurrentiels, risques et priorités</h2>
+  <h3>5. Faiblesses du marché convertibles en avantages</h3>
+  <p>Les limites relevées dans le rapport concurrentiel constituent des pistes à tester, et non des faiblesses définitivement établies chez tous les concurrents.</p>
+  <table>
+    <tr><th style="width:50%">Opportunité observée</th><th>Réponse possible de Sou9na</th></tr>
+    <tr><td>Les alertes WhatsApp existent déjà, mais sont souvent décrites comme des notifications plutôt que comme un dialogue sur un dossier précis.</td><td>Permettre à l'utilisateur de demander, dans sa langue, une explication liée à un marché et à ses sources.</td></tr>
+    <tr><td>Les résultats s'appuient fortement sur la qualité du profil renseigné par l'entreprise.</td><td>Guider la saisie du profil, demander confirmation avant toute mise à jour et afficher les informations manquantes.</td></tr>
+    <tr><td>Les scores et verdicts peuvent être difficiles à interpréter ou à comparer.</td><td>Expliquer chaque composante, distinguer les faits des incertitudes et fournir les points à vérifier par un humain.</td></tr>
+    <tr><td>Certaines offres imposent des quotas, une facturation annuelle ou un accès coûteux à des fonctions avancées.</td><td>Tester une offre simple, mensuelle ou par dossier, avec un périmètre et des limites d'usage clairs.</td></tr>
+    <tr><td>Plusieurs solutions paraissent orientées vers les utilisateurs déjà expérimentés ou vers le BTP.</td><td>Valider un parcours guidé pour les petites entreprises et tester en priorité les fournitures, services et bons de commande.</td></tr>
+    <tr><td>Les affirmations de précision et de couverture sont difficiles à comparer.</td><td>Mesurer puis publier des résultats méthodologiquement transparents sur l'extraction des champs critiques et la couverture réelle.</td></tr>
+  </table>
+  <p>Ces avantages ne seront défendables que s'ils sont démontrés par des essais réels. La fidélité des citations, la précision des dates limites et des cautions, l'utilité des verdicts, la rapidité de réponse et la volonté de payer doivent être mesurées face à des produits concurrents.</p>
+  <div class="footer"><span>Sou9na — Rapport de synthèse stratégique · v2</span><span>Page 4/5</span></div>
+</div>
+
+<!-- ═══ PAGE 5 — RISQUES & PRIORITÉS ═══ -->
+<div class="page">
+  <h3>6. Principaux risques à maîtriser</h3>
+  <ul>
+    <li><b>Précision des données</b> : une date limite, une caution ou une qualification mal extraite peut induire l'entreprise en erreur. Les champs critiques doivent être validés, sourcés et marqués comme incertains en cas de doute.</li>
+    <li><b>Responsabilité perçue</b> : éviter les expressions telles que « dossier conforme » ou « admission garantie ». Le verdict doit rester un pré-contrôle et ne pas remplacer une vérification professionnelle.</li>
+    <li><b>Accès aux sources</b> : respecter les règles du portail, limiter le débit et faire examiner les conditions de collecte et de réutilisation avant le lancement.</li>
+    <li><b>Données d'entreprise</b> : les profils, attestations et pièces peuvent être sensibles. La minimisation des données, les règles de conservation, la sécurité et l'examen de conformité avec un conseil local sont à prévoir.</li>
+    <li><b>Dépendance à WhatsApp et aux fournisseurs IA</b> : vérifier les conditions applicables au lancement, maîtriser les coûts des messages et prévoir des canaux de secours.</li>
+    <li><b>Promesse de disponibilité</b> : le jeu de secours améliore la continuité, mais doit être clairement signalé afin que des données anciennes ne soient pas confondues avec des avis actualisés.</li>
+  </ul>
+
+  <h3>7. Priorités recommandées</h3>
+  <p><b>Avant un développement lourd : valider le besoin.</b> Comparer plusieurs marchés réels dans les outils concurrents, réaliser des entretiens avec des TPE et des relais professionnels, puis tester un service pilote WhatsApp auprès d'un petit groupe. Mesurer les erreurs sur les champs critiques, le temps économisé, l'usage réel et la disposition à payer.</p>
+  <p><b>Construire ensuite le noyau fiable.</b> Prioriser la collecte avec traçabilité et mode dégradé, le profil confirmé par le client, le matching explicable, un verdict prudent avec références, et un digest bilingue. Ajouter les questions FAQ avec citations et la supervision humaine une fois la base documentaire évaluée.</p>
+  <p><b>Reporter les fonctions plus coûteuses.</b> L'analyse approfondie de CPS par modèle premium, l'OCR avancé, le GraphRAG, l'intelligence des prix et les connecteurs inter-agents peuvent venir après la validation du produit de base. Leur valeur doit être confirmée avant d'élargir l'architecture.</p>
+
+  <h3>Conclusion</h3>
+  <p>Sou9na possède une architecture adaptée à un assistant de marchés publics explicable, multicanal et évolutif. Mais son avantage ne résidera pas dans la seule combinaison « IA + WhatsApp + verdict », déjà largement occupée. Il devra tenir une promesse plus précise : <b>aider une petite entreprise à décider rapidement, sur la base d'informations vérifiables, en rendant visibles les incertitudes et les prochaines vérifications utiles</b>.</p>
+  <p>La priorité stratégique est donc de valider cette promesse sur de vrais dossiers avant d'investir dans les fonctions avancées.</p>
+
+  <div class="note" style="margin-top:3mm"><b>Rappel de répartition des moteurs (v2)</b> : RÉGISSEUR · INSPECTEUR · SENTINELLE · serveurs MCP · équipe rouge · observabilité → <b>LangGraph</b> ; COMPAGNON · JUGE · CONCIERGE → <b>Agentic AI</b> (moteur v1.7) ; équipe bleue → <b>les deux</b>.</div>
+  <div class="footer"><span>Sou9na — Rapport de synthèse stratégique · v2 · Fin du document</span><span>Page 5/5</span></div>
+</div>
+
+</body>
+</html>

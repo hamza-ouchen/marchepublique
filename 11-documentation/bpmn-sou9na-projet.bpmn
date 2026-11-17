@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Defs_Sou9na"
+                  targetNamespace="http://sou9na.ma/bpmn/projet"
+                  exporter="Sou9na — La Régie" exporterVersion="3">
+
+  <bpmn:collaboration id="Collab_01">
+    <bpmn:participant id="Pool_Entrepreneur" name="ENTREPRENEUR — TPME" processRef="Process_Entrepreneur" />
+    <bpmn:participant id="Pool_Sou9na" name="SOU9NA — LE SERVICE" processRef="Process_Sou9na" />
+    <bpmn:messageFlow id="MF_Inscription" name="inscription &amp; questions" sourceRef="T_Ecrire" targetRef="T_Accueille" />
+    <bpmn:messageFlow id="MF_Digest" name="digest quotidien 8h00" sourceRef="T_Envoie" targetRef="T_Recoit" />
+    <bpmn:messageFlow id="MF_Reponses" name="réponses WhatsApp" sourceRef="T_Reponse" targetRef="T_Recoit" />
+    <bpmn:messageFlow id="MF_Retour" name="retour d'expérience" sourceRef="T_Informe" targetRef="T_Feedback" />
+  </bpmn:collaboration>
+
+  <!-- ═══════════ PROCESSUS 1 : ENTREPRENEUR (TPME) ═══════════ -->
+  <bpmn:process id="Process_Entrepreneur" isExecutable="false">
+    <bpmn:startEvent id="Start_Besoin" name="besoin de marchés">
+      <bpmn:messageEventDefinition id="Med_Besoin" />
+      <bpmn:outgoing>Flow_Demande</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="T_Ecrire" name="Écrit « Salam » sur WhatsApp">
+      <bpmn:incoming>Flow_Demande</bpmn:incoming>
+      <bpmn:outgoing>Flow_EcrireProfil</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Profil" name="Renseigne son profil (ICE · secteur · région · capacité)">
+      <bpmn:incoming>Flow_EcrireProfil</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProfilConfirme</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="T_Confirme" name="Confirme son profil — décision humaine obligatoire">
+      <bpmn:incoming>Flow_ProfilConfirme</bpmn:incoming>
+      <bpmn:outgoing>Flow_ConfirmeOffre</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="T_Offre" name="Choisit son offre (gratuite · 199 DH · 499 DH)">
+      <bpmn:incoming>Flow_ConfirmeOffre</bpmn:incoming>
+      <bpmn:outgoing>Flow_OffreRecoit</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Recoit" name="Reçoit les messages Sou9na (digest 8h00 · réponses)">
+      <bpmn:incoming>Flow_OffreRecoit</bpmn:incoming>
+      <bpmn:incoming>Flow_PertinentNon</bpmn:incoming>
+      <bpmn:incoming>Flow_GagneNon</bpmn:incoming>
+      <bpmn:outgoing>Flow_RecoitPertinent</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G_Pertinent" name="dossier pertinent ?">
+      <bpmn:incoming>Flow_RecoitPertinent</bpmn:incoming>
+      <bpmn:outgoing>Flow_PertinentOui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_PertinentNon</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="T_Consulte" name="Consulte le dossier (score &amp; justifications)">
+      <bpmn:incoming>Flow_PertinentOui</bpmn:incoming>
+      <bpmn:outgoing>Flow_ConsulteVerdict</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G_Verdict" name="verdict ?">
+      <bpmn:incoming>Flow_ConsulteVerdict</bpmn:incoming>
+      <bpmn:outgoing>Flow_VerdictNoGo</bpmn:outgoing>
+      <bpmn:outgoing>Flow_VerdictGo</bpmn:outgoing>
+      <bpmn:outgoing>Flow_VerdictAE</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_NoGo" name="opportunité écartée (NO-GO)">
+      <bpmn:incoming>Flow_VerdictNoGo</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="T_Prepare" name="Prépare sa candidature (pièces · caution · délais)">
+      <bpmn:incoming>Flow_VerdictGo</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrepareDepose</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Depose" name="Dépose son offre au portail national">
+      <bpmn:incoming>Flow_PrepareDepose</bpmn:incoming>
+      <bpmn:incoming>Flow_CandidateOui</bpmn:incoming>
+      <bpmn:outgoing>Flow_DeposeAttend</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="T_Risques" name="Vérifie les risques listés puis décide — décision humaine obligatoire">
+      <bpmn:incoming>Flow_VerdictAE</bpmn:incoming>
+      <bpmn:outgoing>Flow_RisquesCandidate</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="G_Candidate" name="je candidate ?">
+      <bpmn:incoming>Flow_RisquesCandidate</bpmn:incoming>
+      <bpmn:outgoing>Flow_CandidateOui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CandidateNon</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_Ecartee" name="candidature renoncée">
+      <bpmn:incoming>Flow_CandidateNon</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="T_Attend" name="Attend le résultat (ouverture des plis)">
+      <bpmn:incoming>Flow_DeposeAttend</bpmn:incoming>
+      <bpmn:outgoing>Flow_AttendInforme</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Informe" name="Informe Sou9na (gagné / perdu · motif)">
+      <bpmn:incoming>Flow_AttendInforme</bpmn:incoming>
+      <bpmn:outgoing>Flow_InformeGagne</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G_Gagne" name="gagné ?">
+      <bpmn:incoming>Flow_InformeGagne</bpmn:incoming>
+      <bpmn:outgoing>Flow_GagneOui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GagneNon</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_Remporte" name="marché remporté">
+      <bpmn:incoming>Flow_GagneOui</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Demande" sourceRef="Start_Besoin" targetRef="T_Ecrire" />
+    <bpmn:sequenceFlow id="Flow_EcrireProfil" sourceRef="T_Ecrire" targetRef="T_Profil" />
+    <bpmn:sequenceFlow id="Flow_ProfilConfirme" sourceRef="T_Profil" targetRef="T_Confirme" />
+    <bpmn:sequenceFlow id="Flow_ConfirmeOffre" sourceRef="T_Confirme" targetRef="T_Offre" />
+    <bpmn:sequenceFlow id="Flow_OffreRecoit" sourceRef="T_Offre" targetRef="T_Recoit" />
+    <bpmn:sequenceFlow id="Flow_RecoitPertinent" sourceRef="T_Recoit" targetRef="G_Pertinent" />
+    <bpmn:sequenceFlow id="Flow_PertinentOui" name="oui" sourceRef="G_Pertinent" targetRef="T_Consulte" />
+    <bpmn:sequenceFlow id="Flow_PertinentNon" name="non — rien de pertinent, le suivi reprend le lendemain" sourceRef="G_Pertinent" targetRef="T_Recoit" />
+    <bpmn:sequenceFlow id="Flow_ConsulteVerdict" sourceRef="T_Consulte" targetRef="G_Verdict" />
+    <bpmn:sequenceFlow id="Flow_VerdictNoGo" name="NO-GO" sourceRef="G_Verdict" targetRef="End_NoGo" />
+    <bpmn:sequenceFlow id="Flow_VerdictGo" name="GO" sourceRef="G_Verdict" targetRef="T_Prepare" />
+    <bpmn:sequenceFlow id="Flow_VerdictAE" name="À ÉTUDIER" sourceRef="G_Verdict" targetRef="T_Risques" />
+    <bpmn:sequenceFlow id="Flow_PrepareDepose" sourceRef="T_Prepare" targetRef="T_Depose" />
+    <bpmn:sequenceFlow id="Flow_DeposeAttend" sourceRef="T_Depose" targetRef="T_Attend" />
+    <bpmn:sequenceFlow id="Flow_RisquesCandidate" sourceRef="T_Risques" targetRef="G_Candidate" />
+    <bpmn:sequenceFlow id="Flow_CandidateOui" name="oui — je candidate" sourceRef="G_Candidate" targetRef="T_Depose" />
+    <bpmn:sequenceFlow id="Flow_CandidateNon" name="non" sourceRef="G_Candidate" targetRef="End_Ecartee" />
+    <bpmn:sequenceFlow id="Flow_AttendInforme" sourceRef="T_Attend" targetRef="T_Informe" />
+    <bpmn:sequenceFlow id="Flow_InformeGagne" sourceRef="T_Informe" targetRef="G_Gagne" />
+    <bpmn:sequenceFlow id="Flow_GagneOui" name="oui" sourceRef="G_Gagne" targetRef="End_Remporte" />
+    <bpmn:sequenceFlow id="Flow_GagneNon" name="non — le suivi continue" sourceRef="G_Gagne" targetRef="T_Recoit" />
+  </bpmn:process>
+
+  <!-- ═══════════ PROCESSUS 2 : SOU9NA (LE SERVICE) ═══════════ -->
+  <bpmn:process id="Process_Sou9na" isExecutable="false">
+    <bpmn:startEvent id="Start_Cron" name="chaque jour 6h00">
+      <bpmn:timerEventDefinition id="Ted_Cron">
+        <bpmn:timeCycle>0 0 6 * * ?</bpmn:timeCycle>
+      </bpmn:timerEventDefinition>
+      <bpmn:outgoing>Flow_CronCollecte</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="T_Collecte" name="Collecte les avis du portail (AO · BC · prévisionnels)">
+      <bpmn:incoming>Flow_CronCollecte</bpmn:incoming>
+      <bpmn:outgoing>Flow_CollectePortail</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G_Portail" name="portail dispo ?">
+      <bpmn:incoming>Flow_CollectePortail</bpmn:incoming>
+      <bpmn:outgoing>Flow_PortailOui</bpmn:outgoing>
+      <bpmn:outgoing>Flow_PortailNon</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="T_Degarde" name="Mode dégradé — jeu de secours + bandeau d'alerte">
+      <bpmn:incoming>Flow_PortailNon</bpmn:incoming>
+      <bpmn:outgoing>Flow_DegardeExtraction</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Extraction" name="Extraction &amp; vérification (montants · lots · dates · OCR)">
+      <bpmn:incoming>Flow_PortailOui</bpmn:incoming>
+      <bpmn:incoming>Flow_DegardeExtraction</bpmn:incoming>
+      <bpmn:outgoing>Flow_ExtractionMatch</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Match" name="Match /100 par profil (score déterministe &amp; expliqué)">
+      <bpmn:incoming>Flow_ExtractionMatch</bpmn:incoming>
+      <bpmn:incoming>Flow_AmeliorationMatch</bpmn:incoming>
+      <bpmn:outgoing>Flow_MatchPrecheck</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Precheck" name="Pré-check &amp; verdict (GO · À ÉTUDIER · NO-GO)">
+      <bpmn:incoming>Flow_MatchPrecheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrecheckDigest</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Digest" name="Compose le digest (FR / AR · top matchs · risques)">
+      <bpmn:incoming>Flow_PrecheckDigest</bpmn:incoming>
+      <bpmn:outgoing>Flow_DigestEnvoie</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Envoie" name="Envoie le digest 8h00 (WhatsApp · email · statuts)">
+      <bpmn:incoming>Flow_DigestEnvoie</bpmn:incoming>
+      <bpmn:outgoing>Flow_EnvoieLivre</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="End_Livre" name="service livré">
+      <bpmn:incoming>Flow_EnvoieLivre</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="Start_Msg" name="message du client">
+      <bpmn:messageEventDefinition id="Med_Msg" />
+      <bpmn:outgoing>Flow_MsgAccueille</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="T_Accueille" name="Accueille &amp; répond (FAQ citée — FR / AR / Darija)">
+      <bpmn:incoming>Flow_MsgAccueille</bpmn:incoming>
+      <bpmn:incoming>MF_Inscription</bpmn:incoming>
+      <bpmn:outgoing>Flow_AccueilleHorsP</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G_HorsP" name="hors périmètre ?">
+      <bpmn:incoming>Flow_AccueilleHorsP</bpmn:incoming>
+      <bpmn:outgoing>Flow_HorsPNon</bpmn:outgoing>
+      <bpmn:outgoing>Flow_HorsPOui</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="T_Reponse" name="Réponse envoyée (citation vérifiable)">
+      <bpmn:incoming>Flow_HorsPNon</bpmn:incoming>
+      <bpmn:incoming>Flow_SuperviseurReponse</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReponseEnd</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="End_Rep" name="réponse livrée">
+      <bpmn:incoming>Flow_ReponseEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="T_Superviseur" name="Superviseur valide la réponse hors périmètre — décision humaine obligatoire">
+      <bpmn:incoming>Flow_HorsPOui</bpmn:incoming>
+      <bpmn:outgoing>Flow_SuperviseurReponse</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="T_Feedback" name="Enregistre le feedback (gagné / perdu · motif)">
+      <bpmn:incoming>MF_Retour</bpmn:incoming>
+      <bpmn:outgoing>Flow_FeedbackAmelioration</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="T_Amelioration" name="Améliore matching &amp; seuils (versionnage de l'algorithme)">
+      <bpmn:incoming>Flow_FeedbackAmelioration</bpmn:incoming>
+      <bpmn:outgoing>Flow_AmeliorationMatch</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_CronCollecte" sourceRef="Start_Cron" targetRef="T_Collecte" />
+    <bpmn:sequenceFlow id="Flow_CollectePortail" sourceRef="T_Collecte" targetRef="G_Portail" />
+    <bpmn:sequenceFlow id="Flow_PortailOui" name="oui" sourceRef="G_Portail" targetRef="T_Extraction" />
+    <bpmn:sequenceFlow id="Flow_PortailNon" name="non" sourceRef="G_Portail" targetRef="T_Degarde" />
+    <bpmn:sequenceFlow id="Flow_DegardeExtraction" name="reprise du flux — zéro silence client" sourceRef="T_Degarde" targetRef="T_Extraction" />
+    <bpmn:sequenceFlow id="Flow_ExtractionMatch" sourceRef="T_Extraction" targetRef="T_Match" />
+    <bpmn:sequenceFlow id="Flow_MatchPrecheck" sourceRef="T_Match" targetRef="T_Precheck" />
+    <bpmn:sequenceFlow id="Flow_PrecheckDigest" sourceRef="T_Precheck" targetRef="T_Digest" />
+    <bpmn:sequenceFlow id="Flow_DigestEnvoie" sourceRef="T_Digest" targetRef="T_Envoie" />
+    <bpmn:sequenceFlow id="Flow_EnvoieLivre" sourceRef="T_Envoie" targetRef="End_Livre" />
+    <bpmn:sequenceFlow id="Flow_MsgAccueille" sourceRef="Start_Msg" targetRef="T_Accueille" />
+    <bpmn:sequenceFlow id="Flow_AccueilleHorsP" sourceRef="T_Accueille" targetRef="G_HorsP" />
+    <bpmn:sequenceFlow id="Flow_HorsPNon" name="non" sourceRef="G_HorsP" targetRef="T_Reponse" />
+    <bpmn:sequenceFlow id="Flow_HorsPOui" name="oui" sourceRef="G_HorsP" targetRef="T_Superviseur" />
+    <bpmn:sequenceFlow id="Flow_SuperviseurReponse" name="réponse validée → envoyée au client" sourceRef="T_Superviseur" targetRef="T_Reponse" />
+    <bpmn:sequenceFlow id="Flow_ReponseEnd" sourceRef="T_Reponse" targetRef="End_Rep" />
+    <bpmn:sequenceFlow id="Flow_FeedbackAmelioration" sourceRef="T_Feedback" targetRef="T_Amelioration" />
+    <bpmn:sequenceFlow id="Flow_AmeliorationMatch" name="boucle d'amélioration continue" sourceRef="T_Amelioration" targetRef="T_Match" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="Diagram_Sou9na">
+    <bpmndi:BPMNPlane id="Plane_01" bpmnElement="Collab_01">
+
+      <!-- Bassins -->
+      <bpmndi:BPMNShape id="Pool_Entrepreneur_di" bpmnElement="Pool_Entrepreneur" isHorizontal="true">
+        <dc:Bounds x="20" y="110" width="1520" height="530" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_Sou9na_di" bpmnElement="Pool_Sou9na" isHorizontal="true">
+        <dc:Bounds x="20" y="640" width="1520" height="450" />
+      </bpmndi:BPMNShape>
+
+      <!-- ═══ Bassin Entrepreneur : formes ═══ -->
+      <bpmndi:BPMNShape id="Start_Besoin_di" bpmnElement="Start_Besoin">
+        <dc:Bounds x="152" y="181" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="100" y="232" width="140" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Ecrire_di" bpmnElement="T_Ecrire"><dc:Bounds x="205" y="170" width="140" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Profil_di" bpmnElement="T_Profil"><dc:Bounds x="375" y="170" width="160" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Confirme_di" bpmnElement="T_Confirme"><dc:Bounds x="565" y="170" width="140" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Offre_di" bpmnElement="T_Offre"><dc:Bounds x="735" y="170" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Recoit_di" bpmnElement="T_Recoit"><dc:Bounds x="915" y="170" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Pertinent_di" bpmnElement="G_Pertinent">
+        <dc:Bounds x="1075" y="174" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1052" y="158" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Consulte_di" bpmnElement="T_Consulte"><dc:Bounds x="1145" y="170" width="145" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Verdict_di" bpmnElement="G_Verdict">
+        <dc:Bounds x="1300" y="174" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1265" y="158" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_NoGo_di" bpmnElement="End_NoGo">
+        <dc:Bounds x="1412" y="130" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1360" y="170" width="140" height="22" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Prepare_di" bpmnElement="T_Prepare"><dc:Bounds x="1095" y="305" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Depose_di" bpmnElement="T_Depose"><dc:Bounds x="1275" y="305" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Risques_di" bpmnElement="T_Risques"><dc:Bounds x="1095" y="405" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Candidate_di" bpmnElement="G_Candidate"><dc:Bounds x="1265" y="409" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Ecartee_di" bpmnElement="End_Ecartee">
+        <dc:Bounds x="1272" y="492" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1316" y="502" width="90" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Attend_di" bpmnElement="T_Attend"><dc:Bounds x="1275" y="530" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Informe_di" bpmnElement="T_Informe"><dc:Bounds x="1095" y="530" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Gagne_di" bpmnElement="G_Gagne"><dc:Bounds x="1035" y="534" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Remporte_di" bpmnElement="End_Remporte">
+        <dc:Bounds x="1042" y="469" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1078" y="496" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- ═══ Bassin Entrepreneur : liens ═══ -->
+      <bpmndi:BPMNEdge id="Flow_Demande_di" bpmnElement="Flow_Demande">
+        <di:waypoint x="188" y="199" /><di:waypoint x="205" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EcrireProfil_di" bpmnElement="Flow_EcrireProfil">
+        <di:waypoint x="345" y="199" /><di:waypoint x="375" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ProfilConfirme_di" bpmnElement="Flow_ProfilConfirme">
+        <di:waypoint x="535" y="199" /><di:waypoint x="565" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ConfirmeOffre_di" bpmnElement="Flow_ConfirmeOffre">
+        <di:waypoint x="705" y="199" /><di:waypoint x="735" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OffreRecoit_di" bpmnElement="Flow_OffreRecoit">
+        <di:waypoint x="885" y="199" /><di:waypoint x="915" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RecoitPertinent_di" bpmnElement="Flow_RecoitPertinent">
+        <di:waypoint x="1065" y="199" /><di:waypoint x="1075" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PertinentOui_di" bpmnElement="Flow_PertinentOui">
+        <di:waypoint x="1125" y="199" /><di:waypoint x="1145" y="199" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1118" y="184" width="20" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PertinentNon_di" bpmnElement="Flow_PertinentNon">
+        <di:waypoint x="1100" y="224" /><di:waypoint x="1100" y="255" /><di:waypoint x="990" y="255" /><di:waypoint x="990" y="228" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1106" y="240" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ConsulteVerdict_di" bpmnElement="Flow_ConsulteVerdict">
+        <di:waypoint x="1290" y="199" /><di:waypoint x="1300" y="199" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_VerdictNoGo_di" bpmnElement="Flow_VerdictNoGo">
+        <di:waypoint x="1325" y="174" /><di:waypoint x="1325" y="148" /><di:waypoint x="1412" y="148" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1368" y="130" width="40" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_VerdictGo_di" bpmnElement="Flow_VerdictGo">
+        <di:waypoint x="1350" y="199" /><di:waypoint x="1400" y="199" /><di:waypoint x="1400" y="285" /><di:waypoint x="1160" y="285" /><di:waypoint x="1160" y="305" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1352" y="184" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_VerdictAE_di" bpmnElement="Flow_VerdictAE">
+        <di:waypoint x="1325" y="224" /><di:waypoint x="1325" y="382" /><di:waypoint x="1170" y="382" /><di:waypoint x="1170" y="405" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1332" y="234" width="70" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PrepareDepose_di" bpmnElement="Flow_PrepareDepose">
+        <di:waypoint x="1245" y="334" /><di:waypoint x="1275" y="334" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DeposeAttend_di" bpmnElement="Flow_DeposeAttend">
+        <di:waypoint x="1425" y="334" /><di:waypoint x="1495" y="334" /><di:waypoint x="1495" y="559" /><di:waypoint x="1425" y="559" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RisquesCandidate_di" bpmnElement="Flow_RisquesCandidate">
+        <di:waypoint x="1245" y="434" /><di:waypoint x="1265" y="434" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CandidateOui_di" bpmnElement="Flow_CandidateOui">
+        <di:waypoint x="1315" y="434" /><di:waypoint x="1400" y="434" /><di:waypoint x="1400" y="363" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1330" y="422" width="90" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CandidateNon_di" bpmnElement="Flow_CandidateNon">
+        <di:waypoint x="1290" y="459" /><di:waypoint x="1290" y="492" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1296" y="470" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AttendInforme_di" bpmnElement="Flow_AttendInforme">
+        <di:waypoint x="1275" y="559" /><di:waypoint x="1245" y="559" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InformeGagne_di" bpmnElement="Flow_InformeGagne">
+        <di:waypoint x="1095" y="559" /><di:waypoint x="1085" y="559" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GagneOui_di" bpmnElement="Flow_GagneOui">
+        <di:waypoint x="1060" y="534" /><di:waypoint x="1060" y="505" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1066" y="512" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GagneNon_di" bpmnElement="Flow_GagneNon">
+        <di:waypoint x="1060" y="584" /><di:waypoint x="1060" y="610" /><di:waypoint x="930" y="610" /><di:waypoint x="930" y="228" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1066" y="594" width="120" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- ═══ Bassin Sou9na : formes ═══ -->
+      <bpmndi:BPMNShape id="Start_Cron_di" bpmnElement="Start_Cron">
+        <dc:Bounds x="152" y="711" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="110" y="758" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Collecte_di" bpmnElement="T_Collecte"><dc:Bounds x="205" y="700" width="150" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Portail_di" bpmnElement="G_Portail">
+        <dc:Bounds x="370" y="704" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="335" y="688" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Degarde_di" bpmnElement="T_Degarde"><dc:Bounds x="300" y="772" width="170" height="56" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Extraction_di" bpmnElement="T_Extraction"><dc:Bounds x="620" y="700" width="160" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Match_di" bpmnElement="T_Match"><dc:Bounds x="810" y="700" width="140" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Precheck_di" bpmnElement="T_Precheck"><dc:Bounds x="980" y="700" width="160" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Digest_di" bpmnElement="T_Digest"><dc:Bounds x="1170" y="700" width="140" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Envoie_di" bpmnElement="T_Envoie"><dc:Bounds x="1340" y="700" width="130" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Livre_di" bpmnElement="End_Livre">
+        <dc:Bounds x="1492" y="711" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1450" y="756" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Msg_di" bpmnElement="Start_Msg">
+        <dc:Bounds x="152" y="871" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="110" y="916" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Accueille_di" bpmnElement="T_Accueille"><dc:Bounds x="205" y="860" width="170" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_HorsP_di" bpmnElement="G_HorsP">
+        <dc:Bounds x="390" y="864" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="355" y="848" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Reponse_di" bpmnElement="T_Reponse"><dc:Bounds x="470" y="860" width="130" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Rep_di" bpmnElement="End_Rep">
+        <dc:Bounds x="612" y="871" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="570" y="912" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Superviseur_di" bpmnElement="T_Superviseur"><dc:Bounds x="205" y="938" width="190" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Feedback_di" bpmnElement="T_Feedback"><dc:Bounds x="205" y="1006" width="180" height="58" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Amelioration_di" bpmnElement="T_Amelioration"><dc:Bounds x="420" y="1006" width="180" height="58" /></bpmndi:BPMNShape>
+
+      <!-- ═══ Bassin Sou9na : liens ═══ -->
+      <bpmndi:BPMNEdge id="Flow_CronCollecte_di" bpmnElement="Flow_CronCollecte">
+        <di:waypoint x="188" y="729" /><di:waypoint x="205" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CollectePortail_di" bpmnElement="Flow_CollectePortail">
+        <di:waypoint x="355" y="729" /><di:waypoint x="370" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PortailOui_di" bpmnElement="Flow_PortailOui">
+        <di:waypoint x="420" y="729" /><di:waypoint x="620" y="729" />
+        <bpmndi:BPMNLabel><dc:Bounds x="426" y="714" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PortailNon_di" bpmnElement="Flow_PortailNon">
+        <di:waypoint x="395" y="754" /><di:waypoint x="395" y="772" />
+        <bpmndi:BPMNLabel><dc:Bounds x="401" y="758" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DegardeExtraction_di" bpmnElement="Flow_DegardeExtraction">
+        <di:waypoint x="470" y="800" /><di:waypoint x="700" y="800" /><di:waypoint x="700" y="758" />
+        <bpmndi:BPMNLabel><dc:Bounds x="480" y="806" width="120" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ExtractionMatch_di" bpmnElement="Flow_ExtractionMatch">
+        <di:waypoint x="780" y="729" /><di:waypoint x="810" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MatchPrecheck_di" bpmnElement="Flow_MatchPrecheck">
+        <di:waypoint x="950" y="729" /><di:waypoint x="980" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_PrecheckDigest_di" bpmnElement="Flow_PrecheckDigest">
+        <di:waypoint x="1140" y="729" /><di:waypoint x="1170" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DigestEnvoie_di" bpmnElement="Flow_DigestEnvoie">
+        <di:waypoint x="1310" y="729" /><di:waypoint x="1340" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EnvoieLivre_di" bpmnElement="Flow_EnvoieLivre">
+        <di:waypoint x="1470" y="729" /><di:waypoint x="1492" y="729" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MsgAccueille_di" bpmnElement="Flow_MsgAccueille">
+        <di:waypoint x="188" y="889" /><di:waypoint x="205" y="889" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AccueilleHorsP_di" bpmnElement="Flow_AccueilleHorsP">
+        <di:waypoint x="375" y="889" /><di:waypoint x="390" y="889" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_HorsPNon_di" bpmnElement="Flow_HorsPNon">
+        <di:waypoint x="440" y="889" /><di:waypoint x="470" y="889" />
+        <bpmndi:BPMNLabel><dc:Bounds x="444" y="874" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_HorsPOui_di" bpmnElement="Flow_HorsPOui">
+        <di:waypoint x="415" y="914" /><di:waypoint x="415" y="967" /><di:waypoint x="397" y="967" />
+        <bpmndi:BPMNLabel><dc:Bounds x="421" y="930" width="24" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SuperviseurReponse_di" bpmnElement="Flow_SuperviseurReponse">
+        <di:waypoint x="300" y="938" /><di:waypoint x="300" y="930" /><di:waypoint x="540" y="930" /><di:waypoint x="540" y="918" />
+        <bpmndi:BPMNLabel><dc:Bounds x="480" y="948" width="130" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReponseEnd_di" bpmnElement="Flow_ReponseEnd">
+        <di:waypoint x="600" y="889" /><di:waypoint x="612" y="889" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FeedbackAmelioration_di" bpmnElement="Flow_FeedbackAmelioration">
+        <di:waypoint x="385" y="1035" /><di:waypoint x="420" y="1035" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AmeliorationMatch_di" bpmnElement="Flow_AmeliorationMatch">
+        <di:waypoint x="600" y="1035" /><di:waypoint x="660" y="1035" /><di:waypoint x="660" y="845" /><di:waypoint x="880" y="845" /><di:waypoint x="880" y="758" />
+        <bpmndi:BPMNLabel><dc:Bounds x="690" y="850" width="140" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- ═══ Échanges message (inter-bassins) ═══ -->
+      <bpmndi:BPMNEdge id="MF_Inscription_di" bpmnElement="MF_Inscription">
+        <di:waypoint x="250" y="228" /><di:waypoint x="250" y="600" /><di:waypoint x="192" y="600" /><di:waypoint x="192" y="842" /><di:waypoint x="290" y="842" /><di:waypoint x="290" y="860" />
+        <bpmndi:BPMNLabel><dc:Bounds x="258" y="394" width="110" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Digest_di" bpmnElement="MF_Digest">
+        <di:waypoint x="1405" y="700" /><di:waypoint x="1405" y="652" /><di:waypoint x="1000" y="652" /><di:waypoint x="1000" y="228" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1150" y="660" width="110" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Reponses_di" bpmnElement="MF_Reponses">
+        <di:waypoint x="560" y="860" /><di:waypoint x="560" y="672" /><di:waypoint x="950" y="672" /><di:waypoint x="950" y="228" />
+        <bpmndi:BPMNLabel><dc:Bounds x="700" y="660" width="100" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Retour_di" bpmnElement="MF_Retour">
+        <di:waypoint x="1200" y="588" /><di:waypoint x="1200" y="625" /><di:waypoint x="195" y="625" /><di:waypoint x="195" y="1035" /><di:waypoint x="205" y="1035" />
+        <bpmndi:BPMNLabel><dc:Bounds x="600" y="612" width="120" height="12" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

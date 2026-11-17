@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SOU9NA — Agents : entrées, sorties, matrice d'accès & cas d'usage</title>
+<style>
+  :root{
+    --navy:#12324A; --ink:#0B2239; --gray:#54637a; --line:#dbe3ec; --bg:#FAFCFE;
+    --reg:#12324A; --ins:#B45309; --com:#6D28D9; --jug:#B3282D; --con:#0B6E4F; --sen:#64748B;
+    --hitl:#C9A227; --ok:#0B6E4F; --bad:#B3282D; --warn:#8a6d0f;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:34px 44px;font-size:14px;line-height:1.5}
+  h1{font-size:26px;margin:0 0 4px}
+  h2{font-size:19px;margin:34px 0 10px;padding-bottom:6px;border-bottom:3px solid var(--navy)}
+  h3{font-size:15px;margin:18px 0 6px}
+  p{margin:6px 0}
+  .sub{color:var(--gray);font-size:13px}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 0}
+  .meta span{border:1px solid var(--line);border-radius:6px;padding:2px 10px;font-size:12px;color:var(--gray);background:#fff}
+  /* chips agents */
+  .chip{display:inline-block;color:#fff;font-weight:700;border-radius:6px;padding:2px 10px;font-size:12.5px;white-space:nowrap}
+  .reg{background:var(--reg)} .ins{background:var(--ins)} .com{background:var(--com)}
+  .jug{background:var(--jug)} .con{background:var(--con)} .sen{background:var(--sen)}
+  .hitl{background:var(--hitl)}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:11.5px;background:#fff;color:var(--ink);margin:1px 2px 1px 0}
+  .pill.mcp{border-color:#0B2239;font-weight:600}
+  .pill.read{border-color:#0B6E4F;color:#0B6E4F}
+  .pill.write{border-color:#B45309;color:#B45309}
+  .pill.never{border-color:var(--bad);color:var(--bad)}
+  /* tables */
+  table{border-collapse:collapse;width:100%;background:#fff;margin:8px 0}
+  th{background:var(--navy);color:#fff;text-align:left;padding:7px 10px;font-size:12.5px}
+  td{border:1px solid var(--line);padding:7px 10px;vertical-align:top;font-size:13px}
+  tr.ag-reg td:first-child{border-left:6px solid var(--reg)}
+  tr.ag-ins td:first-child{border-left:6px solid var(--ins)}
+  tr.ag-com td:first-child{border-left:6px solid var(--com)}
+  tr.ag-jug td:first-child{border-left:6px solid var(--jug)}
+  tr.ag-con td:first-child{border-left:6px solid var(--con)}
+  tr.ag-sen td:first-child{border-left:6px solid var(--sen)}
+  /* agent cards */
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;margin:14px 0;overflow:hidden}
+  .card .head{color:#fff;padding:9px 16px;font-weight:700;font-size:15px}
+  .card .body{padding:10px 16px 14px}
+  .h-reg{background:var(--reg)} .h-ins{background:var(--ins)} .h-com{background:var(--com)}
+  .h-jug{background:var(--jug)} .h-con{background:var(--con)} .h-sen{background:var(--sen)}
+  .card table{margin:6px 0}
+  .card td:first-child{width:120px;font-weight:600;color:var(--gray);white-space:nowrap}
+  pre{background:#F4F7FB;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.45;overflow-x:auto;margin:6px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  /* case boxes */
+  .case{background:#fff;border:1px solid var(--line);border-left:6px solid var(--navy);border-radius:10px;padding:12px 18px;margin:14px 0}
+  .case .tag{font-size:11px;font-weight:800;letter-spacing:.5px;color:#fff;background:var(--navy);border-radius:5px;padding:2px 8px;margin-right:8px}
+  .flow{margin:10px 0}
+  .step{display:flex;align-items:flex-start;gap:10px;margin:6px 0}
+  .step .t{width:52px;font-weight:700;color:var(--gray);font-size:12px;padding-top:2px;text-align:right}
+  .rule{background:#FDF6E3;border:1px solid #EAD48A;border-radius:8px;padding:8px 14px;margin:8px 0;font-size:13px}
+  .rouge{background:#FBEDED;border:1px solid #E4A9AC;border-radius:8px;padding:8px 14px;margin:8px 0;font-size:13px}
+  .footer{margin-top:36px;color:var(--gray);font-size:11.5px;border-top:1px solid var(--line);padding-top:10px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 4px}
+  .legend div{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--gray)}
+  .sw{width:16px;height:16px;border-radius:4px;display:inline-block}
+  @media print{body{padding:12mm;font-size:11.5px} .card,.case{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<h1>SOU9NA — Les agents « La Régie » : entrées, sorties, matrice d'accès &amp; cas d'usage</h1>
+<p class="sub">Document de référence pédagogique — chaque agent a sa couleur, partout dans le document.</p>
+<div class="meta">
+  <span>Référence SOU9NA-REF-004</span><span>Version 1.0 — Nov. 2026</span>
+  <span>Complète : README §4.3–4.4 · guide-entrees-sorties-simples.md · matrice-acces-mcp-outils-bdd.md</span>
+</div>
+
+<div class="legend">
+  <div><span class="sw" style="background:var(--reg)"></span>🧭 RÉGISSEUR — orchestration</div>
+  <div><span class="sw" style="background:var(--ins)"></span>🔍 INSPECTEUR — collecte</div>
+  <div><span class="sw" style="background:var(--com)"></span>🎯 COMPAGNON — matching</div>
+  <div><span class="sw" style="background:var(--jug)"></span>⚖️ JUGE — verdict</div>
+  <div><span class="sw" style="background:var(--con)"></span>💬 CONCIERGE — conversation</div>
+  <div><span class="sw" style="background:var(--sen)"></span>🛰️ SENTINELLE (P2)</div>
+  <div><span class="sw" style="background:var(--hitl)"></span>🟡 décision humaine (HITL)</div>
+</div>
+
+<!-- ════════════════ 1. LES 6 AGENTS ════════════════ -->
+<h2>1. Les 6 agents en un coup d'œil</h2>
+<table>
+  <tr><th style="width:150px">Agent</th><th>Concept (son métier en une phrase)</th><th style="width:26%">Entrée</th><th style="width:26%">Sortie</th></tr>
+  <tr class="ag-reg"><td><span class="chip reg">🧭 RÉGISSEUR</span></td><td>Le superviseur : il regarde ce qui arrive, décide <b>qui s'en occupe</b>, suit le déroulement, relance en cas d'échec. Il ne fait <b>aucun travail métier</b>.</td><td>Tout message entrant (WhatsApp, dashboard, cron 6h00, commande admin)</td><td>Une décision de routage : <i>qui</i> fait quoi</td></tr>
+  <tr class="ag-ins"><td><span class="chip ins">🔍 INSPECTEUR</span></td><td>Le collecteur : <b>le seul</b> à toucher au portail. Une fois par jour (6h00 ou run manuel), il lit, nettoie et range les avis en base.</td><td>Déclenchement du jour + pages brutes (ou jeu de secours)</td><td>Avis stockés en base + un <b>rapport</b> au RÉGISSEUR</td></tr>
+  <tr class="ag-com"><td><span class="chip com">🎯 COMPAGNON</span></td><td>Le calculateur : « cette offre correspond-elle à cette entreprise ? » — score <b>déterministe</b> (même entrée = même chiffre), en <b>batch</b>.</td><td>Tous les avis du jour + tous les profils (2 lectures en base)</td><td>Match /100 détaillé + digest FR/AR + envoi 8h00</td></tr>
+  <tr class="ag-jug"><td><span class="chip jug">⚖️ JUGE</span></td><td>Le juriste : 4 contrôles de conformité sur les offres <b>retenues par le score</b>, puis un verdict <b>justifié</b>. Ne promet jamais, n'engage jamais.</td><td>Un avis + le profil (+ la réglementation)</td><td>GO / À ÉTUDIER / NO-GO + justification + risques (si À ÉTUDIER)</td></tr>
+  <tr class="ag-con"><td><span class="chip con">💬 CONCIERGE</span></td><td>La voix : <b>le seul qui parle au client</b> (FR/AR/darija). Ne répond qu'avec ce qui existe déjà, source citée. Hors périmètre → « je vérifie » + humain.</td><td>La question du client, n'importe quelle langue</td><td>Réponse citée — ou escalade humaine (HITL 3)</td></tr>
+  <tr class="ag-sen"><td><span class="chip sen">🛰️ SENTINELLE</span></td><td>L'analyste (phase 2) : lit l'historique des attributions, repère les prix anormaux. <b>Observe et alerte, n'agit jamais.</b></td><td>Archives des avis d'attribution</td><td>Prix médian + alertes OAB</td></tr>
+</table>
+
+<!-- ════════════════ 2. FICHES DÉTAILLÉES ════════════════ -->
+<h2>2. Fiches détaillées — entrée, sortie, exemple</h2>
+
+<div class="card">
+  <div class="head h-reg">🧭 RÉGISSEUR — l'orchestrateur</div>
+  <div class="body">
+    <table>
+      <tr><td>Entrée</td><td><pre>{ "request_id": "123", "source": "whatsapp", "company_id": "ice-001",
+  "texte": "salam, kayn chi marche dyal bni?", "langue": "darija" }</pre></td></tr>
+      <tr><td>Sortie</td><td><pre>{ "intent": "opportunites", "cible": "COMPAGNON", "escalade": false }</pre></td></tr>
+      <tr><td>Routage</td><td><span class="pill">opportunites → COMPAGNON + JUGE</span><span class="pill">faq → CONCIERGE</span><span class="pill">profil → CONCIERGE (HITL 1)</span><span class="pill">sante → INSPECTEUR</span><span class="pill">stop → backend</span><span class="pill">hors_perimetre → CONCIERGE (HITL 3)</span> — confiance &lt; 0,75 → escalade.</td></tr>
+      <tr><td>Accès</td><td><span class="pill mcp">base-donnees</span><span class="pill read">lire run_logs</span><span class="pill write">écrire run_logs</span></td></tr>
+      <tr><td>Jamais</td><td><span class="pill never">lire tenders / scores / verdicts</span><span class="pill never">appeler whatsapp</span><span class="pill never">calculer / juger / répondre</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="head h-ins">🔍 INSPECTEUR — le collecteur</div>
+  <div class="body">
+    <table>
+      <tr><td>Entrée</td><td><pre>{ "run_id": "run-2026-11-17", "date": "2026-11-17", "source": "portail | secours" }</pre></td></tr>
+      <tr><td>Sortie (avis rangé)</td><td><pre>{ "reference": "2026/DTR/0123", "organisme": "Commune de Sidi X", "secteur": "construction",
+  "region": "casa-settat", "montant_mad": 1500000, "caution_mad": 45000,
+  "delai_jours": 120, "dates_remise": "2026-12-01", "plausibilite": { … : true } }</pre></td></tr>
+      <tr><td>Sortie (rapport)</td><td><pre>{ "statut": "succès", "avis_nouveaux": 132, "rejetes": 3, "doublons": 0 }</pre>
+      ← le RÉGISSEUR reçoit <b>le rapport, pas les données</b>.</td></tr>
+      <tr><td>Accès</td><td><span class="pill mcp">portail-marches · rechercher_avis</span><span class="pill mcp">base-donnees</span><span class="pill read">lire tenders (idempotence)</span><span class="pill write">écrire tenders</span></td></tr>
+      <tr><td>Jamais</td><td><span class="pill never">lire entreprises / scores</span><span class="pill never">appeler whatsapp</span><span class="pill never">contacter un client</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="head h-com">🎯 COMPAGNON — le calculateur de compatibilité</div>
+  <div class="body">
+    <table>
+      <tr><td>Entrée (batch)</td><td><pre>lire("tenders", { date_collecte: "2026-11-17" })   → 132 avis en un appel
+lire("entreprises", { statut: "actif" })           → tous les profils en un appel</pre>
+      puis boucle interne de calcul — <b>aucun appel par paire</b>.</td></tr>
+      <tr><td>Sortie (score)</td><td><pre>{ "reference": "2026/DTR/0123", "match_total": 96, "algo_version": "1.0.0",
+  "composantes": { "secteur": 35, "region": 20, "capacite": 20,
+                   "qualifications": 15, "historique": 6 },
+  "points_perdus": ["historique : 1 marché perdu (−4)"] }</pre></td></tr>
+      <tr><td>Sortie (digest)</td><td>contenu FR + AR · bandeau d'état · <span class="pill mcp">whatsapp · envoyer</span> à 8h00</td></tr>
+      <tr><td>Accès</td><td><span class="pill mcp">base-donnees</span><span class="pill mcp">whatsapp</span><span class="pill read">lire tenders · entreprises · feedback</span><span class="pill write">écrire scores · digests</span></td></tr>
+      <tr><td>Jamais</td><td><span class="pill never">appeler le portail</span><span class="pill never">écrire verdicts</span><span class="pill never">décider GO / NO-GO</span><span class="pill never">note non déterministe</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="head h-jug">⚖️ JUGE — le juriste</div>
+  <div class="body">
+    <table>
+      <tr><td>Entrée</td><td>un avis + le profil (+ réglementation via <span class="pill mcp">base-connaissances · chercher</span>)</td></tr>
+      <tr><td>Sortie (1 offre)</td><td><pre>{ "verdict": "GO",
+  "controles": { "caution_vs_capacite": "ok", "ice_attestations": "ok",
+                 "qualifications": "ok", "delai_atteignable": "ok" },
+  "justification": "capacité suffisante — décret 2-22-431, art. 12" }</pre></td></tr>
+      <tr><td>Sortie (lot du matin)</td><td><pre>[ { "reference": "2026/DTR/0123", "verdict": "GO", "controles": { … } },
+  { "reference": "2026/DTR/0099", "verdict": "A_ETUDIER", "controles": { … },
+    "risques_a_verifier": [ "attestation X avant le 25/11", "montant de la caution",
+                            "détails des lots" ] },
+  { "reference": "2026/DTR/0055", "verdict": "NO_GO", "controles": { … } } ]</pre>
+      un objet par offre · <b>risques (≥ 3) uniquement pour À ÉTUDIER</b> · Match ≠ verdict.</td></tr>
+      <tr><td>Accès</td><td><span class="pill mcp">base-donnees</span><span class="pill mcp">base-connaissances</span><span class="pill read">lire scores (au-dessus du seuil) · tenders · entreprises</span><span class="pill write">écrire verdicts</span></td></tr>
+      <tr><td>Jamais</td><td><span class="pill never">appeler whatsapp</span><span class="pill never">contacter quiconque</span><span class="pill never">promettre un gain</span><span class="pill never">dépasser le plafond Tier 2</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="head h-con">💬 CONCIERGE — la voix de l'accueil</div>
+  <div class="body">
+    <table>
+      <tr><td>Entrée</td><td><pre>{ "texte": "c'est quoi le quota de 30% pour les TPME ?", "langue": "fr" }</pre></td></tr>
+      <tr><td>Sortie</td><td><pre>{ "langue": "fr", "reponse": "Les TPME bénéficient d'un quota de 30 %…",
+  "citation": { "document": "décret 2-22-431", "article": "art. 12" },
+  "hitl": false }</pre>
+      FAQ sans citation = rejet · hors périmètre → <span class="chip hitl">HITL 3</span> + « je vérifie et je reviens vers vous ».</td></tr>
+      <tr><td>Accès</td><td><span class="pill mcp">base-donnees</span><span class="pill mcp">base-connaissances</span><span class="pill mcp">whatsapp</span><span class="pill read">lire messages · entreprises · scores · verdicts · digests</span><span class="pill write">écrire messages · feedback</span></td></tr>
+      <tr><td>Jamais</td><td><span class="pill never">appeler le portail</span><span class="pill never">modifier entreprises sans HITL 1</span><span class="pill never">écrire une soumission</span><span class="pill never">promettre</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="head h-sen">🛰️ SENTINELLE — l'analyste du marché (phase 2)</div>
+  <div class="body">
+    <table>
+      <tr><td>Entrée</td><td>archives des avis d'attribution (fixtures CSV)</td></tr>
+      <tr><td>Sortie</td><td><pre>{ "secteur": "construction", "prix_median_mad": 2100000,
+  "alertes": [ { "reference": "2026/DTR/0099", "ecart_pct": -42 } ] }</pre>
+      seuil OAB : offre &lt; 70 % du médian du secteur → alerte.</td></tr>
+      <tr><td>Accès</td><td><span class="pill mcp">base-donnees</span><span class="pill read">lire tenders (attributions)</span><span class="pill write">écrire alertes_sentinelle</span></td></tr>
+      <tr><td>Jamais</td><td><span class="pill never">appeler whatsapp</span><span class="pill never">agir sur la v1</span><span class="pill never">déclencher des envois</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════ 3. MATRICE ════════════════ -->
+<h2>3. Matrice d'accès — qui appelle quel MCP, quels outils, quelles tables</h2>
+<table>
+  <tr><th style="width:140px">Agent</th><th style="width:200px">Serveurs MCP</th><th>Outils</th><th>Tables lues</th><th>Tables écrites</th></tr>
+  <tr class="ag-reg"><td><span class="chip reg">🧭 RÉGISSEUR</span></td><td><span class="pill mcp">base-donnees</span></td><td><span class="pill">lire</span><span class="pill">ecrire</span></td><td><span class="pill read">run_logs</span></td><td><span class="pill write">run_logs</span></td></tr>
+  <tr class="ag-ins"><td><span class="chip ins">🔍 INSPECTEUR</span></td><td><span class="pill mcp">portail-marches</span><span class="pill mcp">base-donnees</span></td><td><span class="pill">rechercher_avis</span><span class="pill">lire</span><span class="pill">ecrire</span></td><td><span class="pill read">tenders</span></td><td><span class="pill write">tenders</span></td></tr>
+  <tr class="ag-com"><td><span class="chip com">🎯 COMPAGNON</span></td><td><span class="pill mcp">base-donnees</span><span class="pill mcp">whatsapp</span></td><td><span class="pill">lire</span><span class="pill">ecrire</span><span class="pill">envoyer</span></td><td><span class="pill read">tenders</span><span class="pill read">entreprises</span><span class="pill read">feedback</span></td><td><span class="pill write">scores</span><span class="pill write">digests</span></td></tr>
+  <tr class="ag-jug"><td><span class="chip jug">⚖️ JUGE</span></td><td><span class="pill mcp">base-donnees</span><span class="pill mcp">base-connaissances</span></td><td><span class="pill">lire</span><span class="pill">ecrire</span><span class="pill">chercher</span></td><td><span class="pill read">scores</span><span class="pill read">tenders</span><span class="pill read">entreprises</span></td><td><span class="pill write">verdicts</span></td></tr>
+  <tr class="ag-con"><td><span class="chip con">💬 CONCIERGE</span></td><td><span class="pill mcp">base-donnees</span><span class="pill mcp">base-connaissances</span><span class="pill mcp">whatsapp</span></td><td><span class="pill">lire</span><span class="pill">ecrire</span><span class="pill">chercher</span><span class="pill">envoyer</span></td><td><span class="pill read">messages</span><span class="pill read">entreprises</span><span class="pill read">scores</span><span class="pill read">verdicts</span><span class="pill read">digests</span></td><td><span class="pill write">messages</span><span class="pill write">feedback</span></td></tr>
+  <tr class="ag-sen"><td><span class="chip sen">🛰️ SENTINELLE</span></td><td><span class="pill mcp">base-donnees</span></td><td><span class="pill">lire</span><span class="pill">ecrire</span></td><td><span class="pill read">tenders (attributions)</span></td><td><span class="pill write">alertes_sentinelle</span></td></tr>
+</table>
+<div class="rule">⚡ <b>Règle de la matrice</b> : listé = autorisé · non listé = <b>interdit par défaut</b> · toute modification = revue collective (PR). Toute lecture/écriture hors matrice = rejet + alerte observabilité + ticket sécurité.</div>
+
+<!-- ════════════════ 4. BASE ════════════════ -->
+<h2>4. La base de données — 8 tables</h2>
+<table>
+  <tr><th>Table</th><th>Contenu</th><th>Écrite par</th><th>Lue par</th></tr>
+  <tr><td><span class="pill">entreprises</span></td><td>profils : nom, ICE, secteur, région, capacité, qualifications, WhatsApp, statut</td><td><span class="pill">backend</span><span class="hitl pill" style="color:#7A5C00;border-color:var(--hitl)">HITL 1 confirmation</span></td><td><span class="chip com" style="font-size:10px">COMPAGNON</span><span class="chip jug" style="font-size:10px">JUGE</span><span class="chip con" style="font-size:10px">CONCIERGE</span></td></tr>
+  <tr><td><span class="pill">tenders</span></td><td>avis du portail : référence, organisme, montant, caution, lots, qualifications exigées, délai, dates, source</td><td><span class="chip ins" style="font-size:10px">INSPECTEUR</span></td><td><span class="chip com" style="font-size:10px">COMPAGNON</span><span class="chip jug" style="font-size:10px">JUGE</span><span class="chip sen" style="font-size:10px">SENTINELLE</span></td></tr>
+  <tr><td><span class="pill">scores</span></td><td>Match /100 : total, 5 composantes, points perdus, algo_version</td><td><span class="chip com" style="font-size:10px">COMPAGNON</span></td><td><span class="chip jug" style="font-size:10px">JUGE</span><span class="chip con" style="font-size:10px">CONCIERGE</span><span class="pill">frontend</span></td></tr>
+  <tr><td><span class="pill">verdicts</span></td><td>GO / À ÉTUDIER / NO-GO, 4 contrôles, justifications, risques</td><td><span class="chip jug" style="font-size:10px">JUGE</span></td><td><span class="chip con" style="font-size:10px">CONCIERGE</span><span class="pill">frontend</span></td></tr>
+  <tr><td><span class="pill">digests</span></td><td>contenu FR + AR, bandeau d'état, statut d'envoi, heure</td><td><span class="chip com" style="font-size:10px">COMPAGNON</span></td><td><span class="pill">frontend</span></td></tr>
+  <tr><td><span class="pill">messages</span></td><td>conversations : texte, intention, langue, citation, drapeau HITL</td><td><span class="chip con" style="font-size:10px">CONCIERGE</span></td><td><span class="chip con" style="font-size:10px">CONCIERGE</span><span class="pill">équipe</span></td></tr>
+  <tr><td><span class="pill">feedback</span></td><td>gagné / perdu + motif par référence</td><td><span class="chip con" style="font-size:10px">CONCIERGE</span></td><td><span class="chip com" style="font-size:10px">COMPAGNON</span></td></tr>
+  <tr><td><span class="pill">run_logs</span></td><td>chaque run : type (cron / manuel), statut, durées, tokens, coût</td><td><span class="chip reg" style="font-size:10px">RÉGISSEUR</span></td><td><span class="chip reg" style="font-size:10px">RÉGISSEUR</span><span class="pill">observabilité</span></td></tr>
+</table>
+<div class="rule">🔒 <b>RLS</b> : toute table liée à un client porte <code>company_id</code> — une entreprise ne voit jamais les données d'une autre. Exceptions : <code>tenders</code> (données publiques) et <code>run_logs</code> (interne).</div>
+
+<!-- ════════════════ 5. CAS ════════════════ -->
+<h2>5. Les cas d'usage expliqués</h2>
+
+<div class="case">
+  <p><span class="tag">CAS A</span><b>Le run quotidien — de 6h00 à 8h00</b> <span class="sub">(qui fait quoi, dans l'ordre)</span></p>
+  <div class="flow">
+    <div class="step"><span class="t">6h00</span><div><span class="chip reg">RÉGISSEUR</span> le cron appelle FastAPI <code>POST /cron/run</code> → ouverture du run : <code>run_logs</code> = « ouvert »</div></div>
+    <div class="step"><span class="t">6h05</span><div><span class="chip ins">INSPECTEUR</span> <code>rechercher_avis</code> → extraction → <b>écrire tenders</b> → <b>rapport</b> au RÉGISSEUR (132 avis, 3 rejetés)</div></div>
+    <div class="step"><span class="t">6h20</span><div><span class="chip com">COMPAGNON</span> 2 lectures massives → calcul Match /100 → <b>écrire scores</b> + <b>écrire digests</b></div></div>
+    <div class="step"><span class="t">7h00</span><div><span class="chip jug">JUGE</span> lit les <b>scores au-dessus du seuil</b> → 4 contrôles → <b>écrire verdicts</b> (tableau, un objet par offre)</div></div>
+    <div class="step"><span class="t">7h30</span><div><span class="chip com">COMPAGNON</span> finalise les digests → <code>whatsapp.envoyer</code> → statut « envoyé »</div></div>
+    <div class="step"><span class="t">8h00</span><div>le client lit son digest · <span class="chip hitl">HITL 2</span> si À ÉTUDIER : décision humaine dans le dashboard</div></div>
+    <div class="step"><span class="t">18h00</span><div><span class="chip reg">RÉGISSEUR</span> clôture le run → rapport dans 08-observabilite</div></div>
+  </div>
+  <div class="rule">🔑 <b>Après chaque étape, le contrôle revient au RÉGISSEUR</b> — les agents rendent leur rapport et s'arrêtent. Le RÉGISSEUR ne transporte jamais les données : elles vivent dans la base.</div>
+</div>
+
+<div class="case">
+  <p><span class="tag">CAS B</span><b>L'exécution manuelle par l'admin</b></p>
+  <p>Le même workflow, déclenché par un humain : bouton dashboard → <code>POST /run</code> (token admin) → <span class="chip reg">RÉGISSEUR</span>. Utilisé après un incident ou un ajout. <b>Le déclencheur change, pas le pilote</b> : mêmes étapes, même tracé, mêmes HITL.</p>
+</div>
+
+<div class="case" style="border-left-color:var(--con)">
+  <p><span class="tag" style="background:var(--con)">CAS C</span><b>« Quelles offres cette semaine ? » — demandé sur WhatsApp</b></p>
+  <div class="flow">
+    <div class="step"><span class="t">1</span><div>le client écrit sur WhatsApp → FastAPI <code>/webhook</code> → <span class="chip reg">RÉGISSEUR</span> classe : <code>consultation</code></div></div>
+    <div class="step"><span class="t">2</span><div><b>Aucun appel à l'INSPECTEUR</b> — <span class="chip con">CONCIERGE</span> lit <code>scores</code> + <code>verdicts</code> de la semaine (RLS <code>company_id</code>)</div></div>
+    <div class="step"><span class="t">3</span><div><span class="chip con">CONCIERGE</span> répond : top 3 + verdicts + <code>fraicheur: "données du 17-11 08:00"</code> + lien vers la fiche complète</div></div>
+  </div>
+  <pre>{ "langue": "ar", "reponse": {
+    "texte": "هاد الأسبوع عندك 3 فرص قوية: … 🟢 Match 96 — GO … 🟡 Match 81 — À ÉTUDIER",
+    "fraicheur": "données du 17-11-2026 08:00" } }</pre>
+  <div class="rule">🔑 <b>Collecte ≠ consultation</b> : INSPECTEUR collecte <b>une fois par jour</b> (6h00 / run admin) ; la consultation est <b>instantanée, toute la journée</b>, depuis la base. Avant 8h00 : dernières données connues + « l'update arrive à 8h00 ».</div>
+</div>
+
+<div class="case" style="border-left-color:var(--con)">
+  <p><span class="tag" style="background:var(--con)">CAS D</span><b>Clic « consulter » sur une offre — la fiche dossier</b></p>
+  <p>Le clic ouvre le dossier <b>déjà calculé</b> : <code>GET /dossiers/{ref}</code> → base → affichage. <b>Aucun agent n'est appelé</b> — la consultation est un affichage, pas un recalcul :</p>
+  <pre>📄 2026/DTR/0123 · Match 96/100 (algo 1.0.0)
+   secteur 35/35 ✓ · région 20/20 ✓ · capacité 20/20 ✓ · qualifications 15/15 ✓ · historique 6/10 ✗
+   ⚖️ GO — justification : décret 2-22-431, art. 12 · 📚 sources : portail + décret</pre>
+</div>
+
+<div class="case" style="border-left-color:var(--jug)">
+  <p><span class="tag" style="background:var(--jug)">CAS E</span><b>« Comment gagner cette offre ? » — accompagnement &amp; ligne rouge</b></p>
+  <p><span class="chip con">CONCIERGE</span> explique le dossier <b>déjà calculé</b> : points forts, points perdus, les 3 risques à vérifier — avec citation. Aucune nouvelle collecte, aucun recalcul.</p>
+  <div class="rouge">🚫 <b>Ligne rouge (jamais, dans aucun cas)</b> : écrire la soumission du client · promettre un gain · appeler quiconque · garantir un résultat.
+  → refus poli + <span class="chip hitl">HITL 3</span> (« je vérifie et je reviens vers vous » → validation humaine).</div>
+</div>
+
+<div class="case" style="border-left-color:var(--jug)">
+  <p><span class="tag" style="background:var(--jug)">CAS F</span><b>Le JUGE : objet vs tableau</b></p>
+  <table>
+    <tr><th>Forme</th><th>Quand</th></tr>
+    <tr><td><b>Objet</b> (1 verdict)</td><td>fiche d'une seule offre (dashboard) · réexamen demandé par le RÉGISSEUR</td></tr>
+    <tr><td><b>Tableau</b> (lot)</td><td>run du matin — un objet par offre retenue</td></tr>
+  </table>
+  <div class="rule">🔑 <code>risques_a_verifier</code> (≥ 3) n'apparaît que pour <b>À ÉTUDIER</b> — jamais pour GO ni NO-GO.</div>
+</div>
+
+<div class="case" style="border-left-color:var(--ins)">
+  <p><span class="tag" style="background:var(--ins)">CAS G</span><b>Le portail est en panne — le mode dégradé</b></p>
+  <p><span class="chip ins">INSPECTEUR</span> : <code>rechercher_avis</code> échoue 2× → <span class="chip reg">RÉGISSEUR</span> bascule sur <code>source: "secours"</code> (jeu de secours) + état « dégradé » → le digest part <b>quand même avant 8h00, avec bandeau d'alerte</b>. <b>Jamais de silence client.</b></p>
+</div>
+
+<div class="case" style="border-left-color:var(--hitl)">
+  <p><span class="tag" style="background:var(--hitl);color:#1c1600">CAS H</span><b>Question hors périmètre — l'escalade HITL 3</b></p>
+  <p>« Rédigez-moi ma soumission complète » → <span class="chip con">CONCIERGE</span> refuse poliment → <span class="chip reg">RÉGISSEUR</span> crée l'escalade → <span class="chip hitl">HITL 3</span> un humain valide (ou traite) la réponse avant envoi. Les 3 points HITL du BPMN : <b>HITL 1</b> confirmation du profil · <b>HITL 2</b> décision sur À ÉTUDIER · <b>HITL 3</b> escalade hors périmètre.</p>
+</div>
+
+<!-- ════════════════ 6. RÈGLES ════════════════ -->
+<h2>6. Les 6 règles transversales (à répéter à l'équipe)</h2>
+<table>
+  <tr><th style="width:30px">#</th><th>Règle</th></tr>
+  <tr><td>1</td><td><b>Tout passe par le RÉGISSEUR</b> — aucun agent ne parle à un autre directement ; chacun rend son rapport et s'arrête.</td></tr>
+  <tr><td>2</td><td><b>Les données passent par la base, pas par les agents</b> — le contrôle (signaux, routage) circule via le RÉGISSEUR ; les données métier circulent via la base, en <b>batch</b>.</td></tr>
+  <tr><td>3</td><td><b>Collecte ≠ consultation</b> — le portail n'est appelé que par l'INSPECTEUR (6h00 / run admin) ; les questions des clients lisent la base en quelques secondes.</td></tr>
+  <tr><td>4</td><td><b>On calcule une fois par jour, on consulte toute la journée</b> — même entrée = même sortie (Match déterministe, versionné).</td></tr>
+  <tr><td>5</td><td><b>Listé = autorisé, non listé = interdit</b> — la matrice §3 fait partie du contrat de chaque agent.</td></tr>
+  <tr><td>6</td><td><b>On prépare, on ne promet pas</b> — JUGE et CONCIERGE expliquent et justifient ; toute action engageante est refusée et remontée à un humain (HITL).</td></tr>
+</table>
+
+<div class="footer">
+  SOU9NA — La Régie · Document interne, diffusion : les 5 membres de l'équipe ·
+  Couleurs : chaque agent garde sa couleur dans tous les documents du projet ·
+  Source de vérité détaillée : README §4.3–4.4 + matrice-acces-mcp-outils-bdd.md
+</div>
+
+</body>
+</html>
