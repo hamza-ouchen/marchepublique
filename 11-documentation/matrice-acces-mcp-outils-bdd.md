@@ -1,11 +1,15 @@
-# SOU9NA — Matrice d'accès : agents → MCP → outils → base de données (v3)
+# SOU9NA — Matrice d'accès : agents → MCP → outils → base de données (v3.1)
 
 > **Règle n°1 du contrat d'agent (clause 2)** : ce qui est listé ici = autorisé.
 > **Ce qui n'est pas listé = interdit par défaut.** Toute modification de cette
 > matrice passe par une revue collective (PR).
 >
 > Références : README §4 (contrat d'agent) · guide-entrees-sorties-simples.md ·
-> doc coloré v3 (`agents-es-matrice-cas-v3.pdf`)
+> doc coloré v4 (`agents-es-matrice-cas-v4.pdf`)
+>
+> **v3.1** : ajout de la **couche plateforme** (migrations `003_plateforme.sql`
+> + `004_donnees_demo_plateforme.sql`) — 6 tables nouvelles : `utilisateurs`,
+> `abonnements`, `otp_codes`, `favoris`, `notifications`, `admins`.
 
 ---
 
@@ -29,7 +33,10 @@
 
 ---
 
-## 2. La base de données (Postgres / Supabase — dossier `02-backend/`) — 10 tables
+## 2. La base de données (Postgres / Supabase — dossier `02-backend/migrations/`) — 16 tables
+
+> **10 tables métier** (schéma `001` + données `002`) + **6 tables plateforme**
+> (schéma `003` + données `004`).
 
 | Table | Contenu | Écrite par | Lue par |
 |---|---|---|---|
@@ -43,12 +50,20 @@
 | `messages` | conversations + **journal d'envoi** : canal, texte, intention, langue, citation, drapeau HITL, statut | CONCIERGE | CONCIERGE (contexte), équipe |
 | `feedback` | gagné / perdu + motif par référence | CONCIERGE (saisie client) → COMPAGNON (réinjection) | COMPAGNON (historique du score) |
 | `run_logs` | chaque run : type (cron / manuel / **backfill**), statut, durées, tokens, coût | RÉGISSEUR | RÉGISSEUR, observabilité |
+| `utilisateurs` 🆕 | équipe d'une entreprise : nom, email, WhatsApp, rôle (`admin` / `membre`), statut, lien `auth.users` | backend (plan Business : plusieurs utilisateurs) | backend, CONCIERGE |
+| `abonnements` 🆕 | plan : Découverte (0 DH) · Pro (199 DH) · Business (499 DH), statut (essai 14 j / actif / expiré / résilié), dates, prix | backend | backend, frontend (bannière essai) |
+| `otp_codes` 🆕 | codes de connexion à usage unique (WhatsApp / email), expiration ~10 min, tentatives | backend | backend |
+| `favoris` 🆕 | dossiers suivis par le client : statut (à étudier / envoyé / gagné / perdu), note | backend (client) | backend, COMPAGNON (contexte historique) |
+| `notifications` 🆕 | cloche du dashboard : digest prêt, verdict HITL, alertes, lu / non lu | CONCIERGE, backend | backend, frontend |
+| `admins` 🆕 | équipe Soukna interne : nom, email, rôle, actif (console `/admin/waitlist`, HITL, support) | backend | backend |
 
 **Sécurité (RLS)** : toute table liée à un client porte `company_id` et tout accès est
-filtré par ce champ — une entreprise ne voit jamais les données d'une autre.
-Exceptions : `tenders` (données publiques), `prospects` / `invitations` / `run_logs`
-(internes). Le mode **visiteur** de CONCIERGE ne lit que `prospects` + base de
-connaissances — jamais `scores` / `verdicts`.
+filtré par ce champ — une entreprise ne voit jamais les données d'une autre. Sur la
+couche plateforme : RLS par `company_id` sur `utilisateurs`, `abonnements`, `favoris`,
+`notifications`. Exceptions sans RLS client : `tenders` (données publiques),
+`prospects` / `invitations` / `otp_codes` / `admins` / `run_logs` (internes —
+`service_role` uniquement). Le mode **visiteur** de CONCIERGE ne lit que `prospects`
++ base de connaissances — jamais `scores` / `verdicts`.
 
 ---
 
@@ -60,7 +75,7 @@ connaissances — jamais `scores` / `verdicts`.
 | 🔍 INSPECTEUR | portail-marches · base-donnees | `rechercher_avis` · `lire` · `ecrire` | `tenders` (vérif. idempotence) | `tenders` |
 | 🎯 COMPAGNON | base-donnees | `lire` · `ecrire` | `tenders` · `entreprises` · `feedback` · `verdicts` (pour rédiger le digest) | `scores` · `digests` (contenu) |
 | ⚖️ JUGE | base-donnees · base-connaissances | `lire` · `ecrire` · `chercher` | `tenders` · `entreprises` · `scores` | `verdicts` |
-| 💬 CONCIERGE | base-donnees · base-connaissances **+ envoi intégré (interne)** | `lire` · `ecrire` · `chercher` · `envoyer (interne)` | `entreprises` · `scores` · `verdicts` · `messages` · `digests` · `prospects` (mode visiteur) | `messages` · `feedback` · `digests` (statut d'envoi) |
+| 💬 CONCIERGE | base-donnees · base-connaissances **+ envoi intégré (interne)** | `lire` · `ecrire` · `chercher` · `envoyer (interne)` | `entreprises` · `scores` · `verdicts` · `messages` · `digests` · `prospects` (mode visiteur) | `messages` · `feedback` · `digests` (statut d'envoi) · `notifications` |
 | 🛰️ SENTINELLE *(P2)* | base-donnees | `lire` · `ecrire` | `tenders` (+ archives d'attribution) | `alertes_sentinelle` |
 
 ---
@@ -143,6 +158,8 @@ connaissances — jamais `scores` / `verdicts`.
   5. **envoi intégré** (module interne — pas un serveur MCP) : `whatsapp_client` / `email_client`
   6. `base-donnees.ecrire("messages", …)` → journaliser + statut d'envoi ; `ecrire("digests", statut)`
   7. question gagné/perdu → `ecrire("feedback", …)`
+  8. événement notable → `ecrire("notifications", …)` (cloche du dashboard : digest prêt,
+      verdict À ÉTUDIER à vérifier, alerte)
 - **Exemple** :
   ```json
   { "outil": "ecrire", "table": "feedback", "lignes": [

@@ -3,7 +3,7 @@
 
 | Référence | SOU9NA-REF-001 |
 |---|---|
-| **Version** | 2.4 |
+| **Version** | 2.5 |
 | **Date** | Novembre 2026 |
 | **Statut** | Approuvé — document de travail interne |
 | **Rédaction** | Équipe Sou9na (collectif, sans responsable unique) |
@@ -161,7 +161,10 @@ et l'API backend qui déclenche et expose les pipelines.
    (`X-Cron-Secret`), `POST /run` (token admin), `GET /health`,
    `POST /prospects` (formulaire landing → file d'attente),
    `POST /admin/waitlist` (approbation HITL 1), `POST /onboarding`
-   (confirmation profil + mot de passe via le lien 7 jours).
+   (confirmation profil + mot de passe via le lien 7 jours) —
+   **+ couche plateforme** (16 tables) : auth OTP (`/auth/otp`, `/auth/verify`),
+   favoris (`/favoris`), notifications (`/notifications`), équipe & plan
+   (`/equipe`, `/abonnement`).
 7. Le backend est le **point d'entrée unique** : le frontend ne parle jamais
    directement à un agent. Le backend **ne parle jamais à WhatsApp/email** :
    il déclenche CONCIERGE (nœud gabarit) qui est l'unique émetteur.
@@ -171,7 +174,9 @@ et l'API backend qui déclenche et expose les pipelines.
 - F1 ≥ 95 % sur montants et délais (golden set de ~100 AO annotés).
 - 4 endpoints opérationnels avec leurs tests de sécurité (sans secret → 403) ;
   endpoints d'inscription (`/prospects`, `/admin/waitlist`, `/onboarding`) avec
-  validation (email obligatoire, WhatsApp facultatif, honeypot, consentement loi 09-08).
+  validation (email obligatoire, WhatsApp facultatif, honeypot, consentement loi 09-08) ;
+  endpoints plateforme (`/auth/otp`, `/favoris`, `/notifications`, `/equipe`, `/abonnement`)
+  sur la couche plateforme (migrations `003_plateforme.sql` + `004_donnees_demo_plateforme.sql`).
 - Pipeline quotidien complet ≤ 2 h (6h00 → 8h00).
 
 **Interdits.** Modifier un profil client, calculer un Match, envoyer des messages
@@ -557,7 +562,7 @@ la fusion en CI/CD.
 |---|---|---|
 | `feat/regisseur` | 🧭 Mhalli | graphe LangGraph : intake, routage, relances |
 | `feat/mcp-servers` | 🧭 Mhalli | enveloppes des 3 serveurs MCP (dont `base-connaissances`) |
-| `feat/backend` | 🔍 Midouni | FastAPI : `/webhook`, `/cron/run`, `/prospects`, `/admin/waitlist`, `/onboarding` |
+| `feat/backend` | 🔍 Midouni | FastAPI : `/webhook`, `/cron/run`, `/prospects`, `/admin/waitlist`, `/onboarding` + couche plateforme (`/auth/otp`, `/favoris`, `/notifications`, `/equipe`, `/abonnement`) |
 | `feat/inspecteur` | 🔍 Midouni | collecte quotidienne, idempotence, mode `backfill` |
 | `feat/juge` | ⚖️ Ouchen | 4 contrôles, verdicts justifiés |
 | `feat/rag` | ⚖️ Ouchen | moteur d'ingestion + golden set (enveloppe MCP chez Mhalli) |
@@ -625,7 +630,10 @@ Sou9na-Projet/
 │   └── .env.example
 │
 ├── 02-backend/                      ← 👤 Hamza Midouni — API FastAPI
-│   └── .env.example                     (webhook, cron, /run, /health)
+│   ├── .env.example                     (webhook, cron, /run, /health)
+│   └── migrations/                      ← schéma SQL versionné : 001 schema (10 tables),
+│                                            002 données démo, 003 plateforme (6 tables),
+│                                            004 données démo plateforme — 16 tables, RLS
 │
 ├── 03-agentic-ai/                   ← plateforme Agentic AI (moteur v1.7) — les agents
 │   ├── .env.example                      qui raisonnent et dialoguent
@@ -646,7 +654,7 @@ Sou9na-Projet/
 │   ├── portail-marches/             ← outil de collecte du portail national
 │   ├── base-connaissances/          ← accès à la base vectorielle (Astra)
 │   ├── base-donnees/                ← accès contrôlé à Postgres/Supabase
-│   └── whatsapp/                    ← envoi / réception WhatsApp
+│                                         (ex-`whatsapp/` supprimé en v3 : envoi intégré à CONCIERGE)
 │
 ├── 06-connaissances/                ← 👤 Hamza Ouchen — RAG (naïf → hybride → agentic)
 │   ├── corpus/                      ← documents réglementaires versionnés
@@ -678,8 +686,10 @@ Sou9na-Projet/
     ├── agents-es-matrice-cas.pdf                ← version PDF du document coloré v1 (impression / diffusion)
     ├── agents-es-matrice-cas-v2.html            ← document coloré v2 : + parcours d'inscription officiel (CAS 0), + « FastAPI ou agent ? » (§0) — conservé
     ├── agents-es-matrice-cas-v2.pdf             ← version PDF du document coloré v2
-    ├── agents-es-matrice-cas-v3.html            ← document coloré v3 : + CONCIERGE unique émetteur (envoi intégré, 3 serveurs MCP), + chatbot visiteur/client, + RAG (qui construit quoi)
-    └── agents-es-matrice-cas-v3.pdf             ← version PDF du document coloré v3``
+    ├── agents-es-matrice-cas-v3.html            ← document coloré v3 : + CONCIERGE unique émetteur (envoi intégré, 3 serveurs MCP), + chatbot visiteur/client, + RAG (qui construit quoi) — conservé
+    ├── agents-es-matrice-cas-v3.pdf             ← version PDF du document coloré v3
+    ├── agents-es-matrice-cas-v4.html            ← document coloré v4 : + couche plateforme (16 tables : utilisateurs, abonnements, OTP, favoris, notifications, admins)
+    └── agents-es-matrice-cas-v4.pdf             ← version PDF du document coloré v4``
 
 **Flux de données (résumé)** :
 `portail → 05-mcp-server/portail-marches → INSPECTEUR → base (02-backend) →
@@ -730,3 +740,4 @@ tout élargissement des sources.
 | 2.2 | Nov. 2026 | Ajout des contrats d'entrée/sortie par agent — formats JSON, règles de plausibilité, contrats MCP (§ 4.3) — et du jeu de simulation autonome T1–T7 avec fixtures de référence (§ 4.4) ; intégration au plan de première semaine (§ 9) |
 | 2.3 | Nov. 2026 | **CONCIERGE unique émetteur** : envoi intégré dans l'agent (module isolé WhatsApp Cloud API + Brevo), suppression du serveur MCP d'envoi (3 serveurs MCP) ; parcours d'inscription officiel aligné sur le projet original (landing = file d'attente, email obligatoire / WhatsApp facultatif, approbation admin, lien 7 jours sur les 2 canaux, profil + mot de passe, essai 14 jours, canaux opt-in) ; chatbot visiteur/client ; répartition RAG (Ouchen : ingestion + golden set · Mhalli : enveloppe MCP) ; schéma base à 10 tables (`prospects`, `invitations`) ; **mode `backfill` d'INSPECTEUR au lancement** ; doc coloré v3 |
 | 2.4 | Nov. 2026 | Stratégie des branches Git (§ 5 bis) : dépôt `marchepublique` initialisé, 14 branches en place (2 permanentes + 12 de domaine), flux PR + règles de protection GitHub ; norme N1 alignée |
+| 2.5 | Nov. 2026 | **Couche plateforme (16 tables)** : migrations `003_plateforme.sql` + `004_donnees_demo_plateforme.sql` appliquées sur Supabase (`utilisateurs`, `abonnements`, `otp_codes`, `favoris`, `notifications`, `admins` — RLS par `company_id`) ; correction du schéma démo (`array[]::text[]`) ; endpoints backend plateforme ajoutés (§ 3.2) ; matrice d'accès v3.1 ; doc coloré v4 |
