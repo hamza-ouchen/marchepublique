@@ -1,0 +1,44 @@
+{
+  "passages": [
+    {
+      "texte": "La commande publique au Maroc représente 82,45 milliards de dirhams en 2025, avec environ 135 appels d'offres publiés chaque jour. 93 % des entreprises soumissionnaires sont des TPME.",
+      "source": "Sou9na — chiffres clés du marché (rapport de synthèse v2)",
+      "article": "§ 1 Contexte"
+    },
+    {
+      "texte": "Sou9na transforme le flux quotidien du portail national des marchés publics en une décision explicable : Match /100, pré-check d'éligibilité, verdict GO / À ÉTUDIER / NO-GO, livré sur WhatsApp, email et dashboard, en français et en arabe.",
+      "source": "Sou9na — présentation du service",
+      "article": "Promesse"
+    },
+    {
+      "texte": "Sou9na ne vend pas l'accès aux données (publiques par la loi) : il vend le temps économisé et les dossiers sauvés. Le Match /100 est calculé chaque matin ; la consultation est instantanée toute la journée.",
+      "source": "Sou9na — principe fondateur (README §1)",
+      "article": "Principe fondateur"
+    },
+    {
+      "texte": "L'essai gratuit dure 14 jours à partir de la confirmation du profil. Pendant l'essai, le dashboard est alimenté chaque matin à 8h00 (digest français et arabe) et le client peut poser ses questions au chatbot.",
+      "source": "Sou9na — parcours d'inscription",
+      "article": "Essai 14 jours"
+    },
+    {
+      "texte": "Les offres d'attente : l'inscription se fait depuis la page d'accueil (email obligatoire, WhatsApp facultatif), puis l'équipe approuve la demande et envoie un lien d'activation valable 7 jours sur WhatsApp et/ou par email.",
+      "source": "Sou9na — parcours d'inscription",
+      "article": "File d'attente"
+    },
+    {
+      "texte": "Le Match /100 pèse : secteur 35 points, région 20, capacité 20, qualifications 15, historique 10. Match et verdict sont deux choses distinctes : un Match de 96 peut recevoir un verdict NO-GO.",
+      "source": "Sou9na — matching",
+      "article": "Pondérations v3"
+    },
+    {
+      "texte": "Le digest du matin arrive à 8h00 sur les canaux choisis par le client (WhatsApp et/ou email). Avant 8h00, le chatbot répond avec les données de la veille et précise que la mise à jour arrive à 8h00.",
+      "source": "Sou9na — SLA digest",
+      "article": "8h00"
+    },
+    {
+      "texte": "Trois plans : Découverte (0 DH/mois, consultation du digest), Pro (199 DH/mois, Match et verdicts illimités, chatbot), Business (499 DH/mois, plusieurs utilisateurs, gestion d'équipe, support prioritaire).",
+      "source": "Sou9na — tarifs",
+      "article": "Plans"
+    }
+  ]
+}
