@@ -1,0 +1,8 @@
+[
+  {"query": "Qu'est-ce que SOUKNA ?", "expected_block": "Q-001"},
+  {"query": "Que signifient les verdicts GO, À ÉTUDIER et NO-GO ?", "expected_block": "Q-007"},
+  {"query": "Quelles langues sont supportées par SOUKNA ?", "expected_block": "Q-012"},
+  {"query": "SOUKNA dépose-t-il l'offre à ma place ?", "expected_block": "Q-016"},
+  {"query": "Comment constituer un cautionnement provisoire au Maroc ?", "expected_block": "Q-061"},
+  {"query": "Quel est le délai légal de paiement d'un marché public au Maroc ?", "expected_block": "Q-097"}
+]

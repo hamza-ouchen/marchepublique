@@ -1,0 +1,39 @@
+name: RAG
+
+on:
+  push:
+    branches: ['feature/hamza-ouchen/rag-livraison']
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  rag-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked RAG dependencies
+        run: |
+          python -m pip install -r 05-mcp-server/base-connaissances/requirements-rag.lock
+          python -m pip install -r 06-connaissances/astra-rag/build-requirements.lock
+          python -m pip install --no-deps --no-build-isolation -e 06-connaissances/astra-rag
+          python -m pip check
+      - name: Lint RAG
+        working-directory: 06-connaissances/astra-rag
+        run: python -m ruff check .
+      - name: Test RAG
+        working-directory: 06-connaissances/astra-rag
+        run: python -m pytest -q
+      - name: Test MCP knowledge adapter and existing behavior
+        working-directory: 05-mcp-server/base-connaissances
+        run: python -m pytest -q
+      - name: Check CPS fixtures
+        run: python 02-backend/fixtures/cps/verifier_fixtures.py
+      - name: Build RAG wheel with tokenizer
+        run: python -m pip wheel --no-deps --no-build-isolation ./06-connaissances/astra-rag -w /tmp/rag-wheel

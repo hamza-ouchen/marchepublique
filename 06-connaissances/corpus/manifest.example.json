@@ -1,0 +1,4 @@
+{
+  "documents": [],
+  "instructions": "Ajouter les textes approuvés avec source_id, file, sha256, source, source_url, rights, reviewed_by et validation=approved. Ne pas classer le PDF SOUKNA comme texte réglementaire."
+}
