@@ -28,12 +28,11 @@ export const REGIONS = [
 export interface AppUser {
   id: string;
   nom: string;
-  email: string;
-  password: string; // prototype only — jamais a faire ainsi avec un vrai backend
+  telephone: string; // identifiant principal — format E.164 (ex. 212612345678)
+  email?: string;
   role: Role;
   entreprise?: string;
   ice?: string;
-  telephone?: string;
   secteurActivite?: string;
   region?: string;
   qualifications?: string;

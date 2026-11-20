@@ -23,6 +23,24 @@ export const DICTIONARY: Record<string, Record<Lang, string>> = {
   "common.password": { fr: "Mot de passe", ar: "كلمة السر" },
   "common.select": { fr: "Selectionner...", ar: "اختر..." },
 
+  "auth.phone": { fr: "Numero WhatsApp", ar: "رقم واتساب" },
+  "auth.phoneHint": {
+    fr: "Format international, ex. 212612345678",
+    ar: "صيغة دولية، مثال 212612345678",
+  },
+  "auth.sendCode": { fr: "Envoyer le code", ar: "إرسال الرمز" },
+  "auth.sending": { fr: "Envoi...", ar: "جاري الإرسال..." },
+  "auth.enterCode": { fr: "Code recu par WhatsApp", ar: "الرمز المستلم عبر واتساب" },
+  "auth.codeSentTo": { fr: "Un code a 6 chiffres a ete envoye par WhatsApp.", ar: "تم إرسال رمز من 6 أرقام عبر واتساب." },
+  "auth.verify": { fr: "Verifier", ar: "تأكيد" },
+  "auth.verifying": { fr: "Verification...", ar: "جاري التحقق..." },
+  "auth.changeNumber": { fr: "Changer de numero", ar: "تغيير الرقم" },
+  "auth.resend": { fr: "Renvoyer le code", ar: "إعادة إرسال الرمز" },
+  "auth.testMode": {
+    fr: "Mode test — backend non connecte, aucun WhatsApp reel envoye.",
+    ar: "وضع تجريبي — الخادم غير متصل، لا يتم إرسال واتساب حقيقي.",
+  },
+
   "nav.dashboard": { fr: "Tableau de bord", ar: "لوحة التحكم" },
   "nav.conversations": { fr: "Conversations", ar: "المحادثات" },
   "nav.clients": { fr: "Clients (TPME)", ar: "العملاء (المقاولات)" },
@@ -108,6 +126,16 @@ export const DICTIONARY: Record<string, Record<Lang, string>> = {
   },
   "signup.submit": { fr: "Creer mon compte", ar: "إنشاء حسابي" },
   "signup.alreadyRegistered": { fr: "Deja inscrit ?", ar: "مسجل من قبل؟" },
+
+  "profile.title": { fr: "Mon profil", ar: "ملفي الشخصي" },
+  "profile.subtitle": { fr: "Vos informations chez Sou9na.", ar: "معلوماتك عند سوقنا." },
+  "profile.hitlNotice": {
+    fr: "Une demande de modification envoyee ici depuis WhatsApp passe par une confirmation humaine (HITL) avant d'etre appliquee. Ici, dans le prototype, la sauvegarde est directe.",
+    ar: "طلب التعديل المرسل عبر واتساب يمر بتأكيد بشري (HITL) قبل تطبيقه. هنا، في هذا النموذج التجريبي، الحفظ مباشر.",
+  },
+  "profile.notEditable": { fr: "Identifiant de connexion — non modifiable", ar: "رقم تسجيل الدخول — غير قابل للتعديل" },
+  "profile.save": { fr: "Enregistrer", ar: "حفظ" },
+  "profile.saved": { fr: "Enregistre", ar: "تم الحفظ" },
 };
 
 interface LanguageContextValue {

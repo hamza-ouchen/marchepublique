@@ -84,7 +84,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-sand-900">{user?.nom}</p>
-            <p className="truncate text-xs text-sand-900/50">{user?.email}</p>
+            <p className="truncate text-xs text-sand-900/50">{user?.telephone}</p>
           </div>
         </div>
         <button

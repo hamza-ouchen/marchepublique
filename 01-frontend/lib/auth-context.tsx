@@ -9,12 +9,16 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { AppUser, Role } from "./types";
+import { requestOtp, verifyOtp } from "./api";
 
 // ---------------------------------------------------------------------------
-// AUTH PROTOTYPE — localStorage uniquement, aucun vrai backend pour l'instant.
-// A remplacer par de vrais appels API (JWT / session) des que le backend
-// (Hamza Midouni, FastAPI) sera disponible. Mots de passe stockes en clair
-// ici par simplicite de prototype : ne jamais faire ca en production.
+// AUTH — authentification par numero WhatsApp + code OTP (SOU9NA-REF-001
+// §3.2/§3.4) : aucun mot de passe, aucune donnee sensible dans le navigateur.
+// Tant que le backend OTP (Hamza Midouni, FastAPI /auth/otp + /auth/verify)
+// n'est pas branche (NEXT_PUBLIC_API_URL absent), le registre d'utilisateurs
+// ci-dessous reste local au navigateur en MODE TEST, pour que le prototype
+// soit utilisable de bout en bout — a supprimer des que l'API reelle gere
+// la creation/lecture des comptes.
 // ---------------------------------------------------------------------------
 
 const USERS_KEY = "sou9na_users";
@@ -23,8 +27,7 @@ const SESSION_KEY = "sou9na_session";
 const SEED_ADMIN: AppUser = {
   id: "admin-seed",
   nom: "Administrateur Sou9na",
-  email: "admin@sou9na.ma",
-  password: "admin123",
+  telephone: "212600000000",
   role: "admin",
   dateInscription: "2026-10-01",
 };
@@ -38,7 +41,7 @@ function loadUsers(): AppUser[] {
   }
   try {
     const parsed = JSON.parse(raw) as AppUser[];
-    if (!parsed.find((u) => u.email === SEED_ADMIN.email)) {
+    if (!parsed.find((u) => u.telephone === SEED_ADMIN.telephone)) {
       parsed.push(SEED_ADMIN);
     }
     return parsed;
@@ -51,27 +54,34 @@ function saveUsers(users: AppUser[]) {
   window.localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
+interface SignupProfile {
+  nom: string;
+  telephone: string;
+  entreprise: string;
+  email?: string;
+  ice?: string;
+  secteurActivite?: string;
+  region?: string;
+  qualifications?: string;
+}
+
 interface AuthContextValue {
   user: AppUser | null;
   loading: boolean;
-  login: (email: string, password: string) => { ok: boolean; error?: string };
-  signup: (data: {
-    nom: string;
-    email: string;
-    password: string;
-    entreprise: string;
-    ice?: string;
-    telephone?: string;
-    secteurActivite?: string;
-    region?: string;
-    qualifications?: string;
-  }) => { ok: boolean; error?: string };
+  requestOtp: (telephone: string) => Promise<{ ok: boolean; error?: string; devCode?: string }>;
+  confirmLogin: (
+    telephone: string,
+    code: string,
+    space: Role
+  ) => Promise<{ ok: boolean; error?: string }>;
+  confirmSignup: (
+    telephone: string,
+    code: string,
+    profile: SignupProfile
+  ) => Promise<{ ok: boolean; error?: string }>;
   updateProfile: (
     patch: Partial<
-      Pick<
-        AppUser,
-        "nom" | "entreprise" | "ice" | "telephone" | "secteurActivite" | "region" | "qualifications"
-      >
+      Pick<AppUser, "nom" | "entreprise" | "ice" | "secteurActivite" | "region" | "qualifications">
     >
   ) => { ok: boolean; error?: string };
   logout: () => void;
@@ -88,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const raw = window.localStorage.getItem(SESSION_KEY);
     if (raw) {
       try {
-        setUser(JSON.parse(raw));
+        const session = JSON.parse(raw) as { user: AppUser };
+        setUser(session.user);
       } catch {
         // ignore
       }
@@ -96,63 +107,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  function login(email: string, password: string) {
-    const users = loadUsers();
-    const found = users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    if (!found) {
-      return { ok: false, error: "Email ou mot de passe incorrect." };
+  function persistSession(token: string, nextUser: AppUser) {
+    // On ne garde que le profil non sensible + le jeton de session —
+    // jamais de mot de passe, jamais de secret.
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify({ token, user: nextUser }));
+    setUser(nextUser);
+  }
+
+  async function doRequestOtp(telephone: string) {
+    return requestOtp(telephone);
+  }
+
+  async function confirmLogin(telephone: string, code: string, space: Role) {
+    const result = await verifyOtp(telephone, code);
+    if (!result.ok) return { ok: false, error: result.error ?? "Code incorrect." };
+
+    if (result.user) {
+      // Backend reel branche : il a resolu l'utilisateur et son role.
+      if (result.user.role !== space) {
+        return {
+          ok: false,
+          error:
+            space === "admin"
+              ? "Ce numero n'est pas associe a un compte Admin."
+              : "Ce numero est associe a un compte Admin.",
+        };
+      }
+      persistSession(result.token ?? "", result.user as AppUser);
+      return { ok: true };
     }
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(found));
-    setUser(found);
+
+    // MODE TEST (pas de backend) : on resout l'utilisateur localement.
+    const found = loadUsers().find((u) => u.telephone === telephone);
+    if (!found) {
+      return { ok: false, error: "Aucun compte associe a ce numero." };
+    }
+    if (found.role !== space) {
+      return {
+        ok: false,
+        error:
+          space === "admin"
+            ? "Ce numero n'est pas associe a un compte Admin."
+            : "Ce numero est associe a un compte Admin.",
+      };
+    }
+    persistSession(result.token ?? "", found);
     return { ok: true };
   }
 
-  function signup(data: {
-    nom: string;
-    email: string;
-    password: string;
-    entreprise: string;
-    ice?: string;
-    telephone?: string;
-    secteurActivite?: string;
-    region?: string;
-    qualifications?: string;
-  }) {
+  async function confirmSignup(telephone: string, code: string, profile: SignupProfile) {
+    const result = await verifyOtp(telephone, code);
+    if (!result.ok) return { ok: false, error: result.error ?? "Code incorrect." };
+
+    if (result.user) {
+      persistSession(result.token ?? "", result.user as AppUser);
+      return { ok: true };
+    }
+
+    // MODE TEST : on cree l'utilisateur localement.
     const users = loadUsers();
-    if (users.find((u) => u.email.toLowerCase() === data.email.toLowerCase())) {
-      return { ok: false, error: "Un compte existe deja avec cet email." };
+    if (users.find((u) => u.telephone === telephone)) {
+      return { ok: false, error: "Un compte existe deja avec ce numero." };
     }
     const newUser: AppUser = {
       id: `u-${Date.now()}`,
-      nom: data.nom,
-      email: data.email,
-      password: data.password,
+      nom: profile.nom,
+      telephone,
+      email: profile.email,
       role: "user",
-      entreprise: data.entreprise,
-      ice: data.ice,
-      telephone: data.telephone,
-      secteurActivite: data.secteurActivite,
-      region: data.region,
-      qualifications: data.qualifications,
+      entreprise: profile.entreprise,
+      ice: profile.ice,
+      secteurActivite: profile.secteurActivite,
+      region: profile.region,
+      qualifications: profile.qualifications,
       dateInscription: new Date().toISOString().slice(0, 10),
     };
-    const updated = [...users, newUser];
-    saveUsers(updated);
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
-    setUser(newUser);
+    saveUsers([...users, newUser]);
+    persistSession(result.token ?? "", newUser);
     return { ok: true };
   }
 
-  function updateProfile(patch: Partial<Pick<AppUser, "nom" | "entreprise" | "ice" | "telephone">>) {
+  function updateProfile(
+    patch: Partial<
+      Pick<AppUser, "nom" | "entreprise" | "ice" | "secteurActivite" | "region" | "qualifications">
+    >
+  ) {
     if (!user) return { ok: false, error: "Non connecte." };
     const users = loadUsers();
     const updatedUser = { ...user, ...patch };
     const updatedUsers = users.map((u) => (u.id === user.id ? updatedUser : u));
     saveUsers(updatedUsers);
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser));
-    setUser(updatedUser);
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    const token = raw ? (JSON.parse(raw) as { token: string }).token : "";
+    persistSession(token, updatedUser);
     return { ok: true };
   }
 
@@ -163,7 +210,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, updateProfile, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        requestOtp: doRequestOtp,
+        confirmLogin,
+        confirmSignup,
+        updateProfile,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
