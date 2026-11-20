@@ -6,7 +6,7 @@ ADR-001 v2.6 : ce serveur est l'UNIQUE passerelle d'émission sortante
 
   - envoyer_whatsapp    : envoie un message WhatsApp via un gabarit
   - envoyer_email       : envoie un email via un gabarit
-  - verifier_templates  : liste les gabarits disponibles (lecture seule)
+  - verifier_templates  : liste les gabarits disponibles (rôle admin)
 
 Transport : stdio (FastMCP) — appelé par les agents (CONCIERGE, etc.)
 comme un outil MCP standard, pas comme une API HTTP.
@@ -25,6 +25,7 @@ mcp = FastMCP("canaux")
 
 @mcp.tool()
 async def envoyer_whatsapp(
+    appelant: str,
     destinataire: str,
     nom_gabarit: str,
     variables: dict[str, str],
@@ -32,7 +33,10 @@ async def envoyer_whatsapp(
 ) -> dict:
     """Envoie un message WhatsApp template à un destinataire.
 
-    - destinataire : numéro WhatsApp au format international
+    - appelant      : agent appelant ("CONCIERGE" ou "COMPAGNON") —
+                      doit figurer dans la whitelist du gabarit, sinon
+                      acces_refuse (voir gabarits.py)
+    - destinataire  : numéro WhatsApp au format international
     - nom_gabarit   : nom du gabarit (voir verifier_templates)
     - variables     : valeurs des variables du gabarit
     - ref           : identifiant unique de cette demande d'envoi
@@ -40,7 +44,7 @@ async def envoyer_whatsapp(
                       retry ne renverra PAS un 2e message)
     """
     try:
-        verifier_envoi(nom_gabarit, variables, destinataire, ref)
+        verifier_envoi(appelant, nom_gabarit, variables, destinataire, ref, canal="whatsapp")
     except SecuriteError as exc:
         journaliser_tentative(
             "envoyer_whatsapp", destinataire, nom_gabarit, ref,
@@ -67,6 +71,7 @@ async def envoyer_whatsapp(
 
 @mcp.tool()
 async def envoyer_email(
+    appelant: str,
     destinataire: str,
     nom_gabarit: str,
     variables: dict[str, str],
@@ -76,11 +81,11 @@ async def envoyer_email(
 
     Mêmes paramètres que envoyer_whatsapp. Contrairement à WhatsApp,
     le remplissage des variables dans le gabarit est fait ICI (en
-    Python) avant l'appel à Brevo, car Brevo n'a pas de notion de
-    "gabarit canaux" — il reçoit un sujet/corps déjà complets.
+    Python) avant l'appel au client email, car ce dernier n'a pas de
+    notion de "gabarit canaux" — il reçoit un sujet/corps déjà complets.
     """
     try:
-        verifier_envoi(nom_gabarit, variables, destinataire, ref)
+        verifier_envoi(appelant, nom_gabarit, variables, destinataire, ref, canal="email")
     except SecuriteError as exc:
         journaliser_tentative(
             "envoyer_email", destinataire, nom_gabarit, ref,
@@ -112,19 +117,26 @@ async def envoyer_email(
 
 
 @mcp.tool()
-def verifier_templates() -> dict:
+def verifier_templates(appelant: str) -> dict:
     """Liste les gabarits disponibles (lecture seule, pas d'envoi).
 
-    Utile pour qu'un agent appelant sache quels gabarits/variables
-    existent avant de tenter un envoi.
+    Rôle "admin" uniquement (brief §3.3) — diagnostic, non utilisé par
+    les agents métier (CONCIERGE/COMPAGNON) dans leur flux normal.
     """
+    if appelant != "admin":
+        return {"succes": False, "erreur": f"acces_refuse : rôle 'admin' requis (reçu '{appelant}')"}
+
     return {
-        nom: {
-            "canal": g.canal,
-            "variables": list(g.variables),
-            "description": g.description,
-        }
-        for nom, g in GABARITS.items()
+        "succes": True,
+        "gabarits": {
+            nom: {
+                "appelants": list(g.appelants),
+                "canaux": list(g.canaux),
+                "variables": list(g.variables),
+                "description": g.description,
+            }
+            for nom, g in GABARITS.items()
+        },
     }
 
 
