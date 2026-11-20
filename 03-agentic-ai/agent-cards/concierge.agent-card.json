@@ -1,0 +1,38 @@
+{
+  "name": "CONCIERGE",
+  "description": "La voix du client — aucun code d'envoi intégré. Répond aux questions (visiteur : FAQ citée ; client : RLS company_id) et envoie via le serveur MCP canaux pour les gabarits (invitation, bienvenue, conversation). FastAPI ne parle jamais à WhatsApp/email.",
+  "url": "http://localhost:8104",
+  "version": "2.0.0",
+  "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
+  "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },
+  "securitySchemes": {
+    "internal-token": { "type": "apiKey", "in": "header", "name": "X-Internal-Token" }
+  },
+  "security": [{ "internal-token": [] }],
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "discuter",
+      "name": "Discussion client / visiteur",
+      "description": "Conversation avec le client (FAQ RLS company_id — portée : scores, verdicts, digests de la sienne) ou avec un visiteur (FAQ générale citée uniquement, zéro donnée de compte, lié à prospects). Citation obligatoire. Pour envoyer la réponse sur WhatsApp/email : appel du MCP canaux avec un gabarit (ex. conversation).",
+      "tags": ["chatbot", "whatsapp", "email", "visiteur", "client", "faq"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "company_id": "ice-001", "canal": "whatsapp", "message": "Quelles offres cette semaine ?" } }] },
+        { "role": "user", "parts": [{ "kind": "data", "data": { "canal": "whatsapp", "message": "C'est quoi Sou9na ?" } }] }
+      ]
+    }
+  ],
+  "x_sou9na": {
+    "proprietaire": "Ayoub Abdelmoughit",
+    "dossier": "03-agentic-ai/concierge/",
+    "entrees": {
+      "discuter": { "data": { "company_id": "string|omit (mode visiteur)", "canal": "whatsapp|email|dashboard", "message": "string" } }
+    },
+    "sorties": {
+      "discuter": { "reponse": "string", "citation": "{document, article}", "hitl": "bool", "statut_envoi": "envoye|echec (si canal externe)" }
+    },
+    "appelant_autorise": "FastAPI (discussion, après webhook/email/dashboard)",
+    "memoire": "messages · feedback · notifications (via MCP base-donnees · appelant=CONCIERGE) · envois via MCP canaux (gabarits uniquement)"
+  }
+}

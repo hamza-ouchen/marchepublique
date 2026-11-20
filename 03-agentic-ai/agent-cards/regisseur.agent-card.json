@@ -1,0 +1,33 @@
+{
+  "name": "RÉGISSEUR",
+  "description": "Superviseur de la chaîne quotidienne : ouvre le run, ordonne les agents, clot le run, journalise tout dans run_logs. Ne touche aucune donnée métier.",
+  "url": "http://localhost:8100",
+  "version": "1.0.0",
+  "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
+  "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },
+  "securitySchemes": {
+    "internal-token": { "type": "apiKey", "in": "header", "name": "X-Internal-Token" }
+  },
+  "security": [{ "internal-token": [] }],
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "orchestrer",
+      "name": "Orchestration de la chaîne",
+      "description": "Exécute la chaîne du matin (ouvrir_run → inspection → matching → verdicts → digest → distribution → clôture) ou un mode manuel / backfill.",
+      "tags": ["orchestration", "cron", "backfill", "manuel"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "mode": "cron", "date": "2026-11-17" } }] }
+      ]
+    }
+  ],
+  "x_sou9na": {
+    "proprietaire": "Hamza Mhalli",
+    "dossier": "04-langgraph/regisseur/",
+    "entrees": { "data": { "mode": "cron|manuel|backfill", "date": "ISO-8601 (YYYY-MM-DD)" } },
+    "sorties": { "rapport": "rapport d'exécution complet du run", "statut": "cloture|echec" },
+    "appelant_autorise": "console admin (POST /run) · cron (POST /cron/run)",
+    "memoire": "run_logs uniquement (via MCP base-donnees)"
+  }
+}

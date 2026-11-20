@@ -1,0 +1,39 @@
+{
+  "passages": [
+    {
+      "texte": "Le décret n° 2-22-431 relatif aux marchés publics impose aux maîtres d'ouvrage une part minimale réservée aux TPME : 30 % du montant des marchés, sous réserve de la nature des prestations.",
+      "source": "décret 2-22-431 (marchés publics)",
+      "article": "art. 12 — quota TPME"
+    },
+    {
+      "texte": "La caution provisoire est exigée pour les appels d'offres ouverts ; elle est plafonnée et libérée après l'ouverture des plis pour les soumissionnaires non retenus. Un candidat dont la capacité financière est inférieure au montant de la caution ne peut pas soumissionner seul — un partenariat (groupement) est alors nécessaire.",
+      "source": "décret 2-22-431 (marchés publics)",
+      "article": "art. 24 — caution provisoire"
+    },
+    {
+      "texte": "Les soumissionnaires doivent justifier de leurs qualifications et classifications en vigueur (catégories et prestations). L'absence d'une qualification exigée par le cahier des charges entraîne le rejet de l'offre — un groupement avec une entreprise certifiée permet d'y remédier.",
+      "source": "décret 2-22-431 (marchés publics)",
+      "article": "art. 26 — qualifications"
+    },
+    {
+      "texte": "Le délai de remise des plis ne peut être raccourci en dessous du minimum réglementaire sans justification ; le candidat doit vérifier que le délai d'exécution annoncé est atteignable avec ses moyens humains et matériels.",
+      "source": "décret 2-22-431 (marchés publics)",
+      "article": "art. 20 — délais"
+    },
+    {
+      "texte": "Les avis d'appels d'offres et d'attribution sont publiés au Bulletin officiel et sur le portail national des marchés publics ; les données sont publiques et leur consultation n'est soumise à aucun droit d'accès.",
+      "source": "décret 2-22-431 (marchés publics)",
+      "article": "art. 33 — publication"
+    },
+    {
+      "texte": "Le CCAG-T applicable fixe les règles d'exécution des marchés de travaux : réception provisoire, garanties, pénalités de retard calculées par jour de retard sur le montant restant à exécuter.",
+      "source": "CCAG-T (cahier des clauses administratives générales — travaux)",
+      "article": "pénalités de retard"
+    },
+    {
+      "texte": "Le recouvrement de la caution définitive et la retenue de garantie suivent les règles du CCAG : la retenue de garantie est plafonnée (7 % du montant du marché) et libérée après la réception définitive.",
+      "source": "CCAG-T (cahier des clauses administratives générales — travaux)",
+      "article": "retenue de garantie"
+    }
+  ]
+}

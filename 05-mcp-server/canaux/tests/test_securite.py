@@ -1,4 +1,4 @@
-"""Tests unitaires basiques pour securite.py (à lancer avec pytest)."""
+﻿"""Tests unitaires basiques pour securite.py (à lancer avec pytest)."""
 
 import sys
 import time
@@ -134,12 +134,12 @@ def test_rate_limit_burst_depasse_rejete(monkeypatch):
         verifier_rate_limit(destinataire)
 
 
-def test_rate_limit_conversation_desactivee_laisse_burst_jouer(monkeypatch):
-    """BUGFIX(Ayoub, 20/11/2026) : quand l'équipe désactive la règle
-    'par conversation' (RATE_LIMIT_PAR_CONVERSATION_5MIN=0), le seuil
-    de burst redevient atteignable en conditions réelles (plusieurs
-    appels consécutifs réels, pas une injection isolée)."""
-    monkeypatch.setenv("RATE_LIMIT_PAR_CONVERSATION_5MIN", "0")
+def test_rate_limit_burst_atteignable_si_limite_conversation_suffisante(monkeypatch):
+    """BUGFIX : lecture numerique de RATE_LIMIT_PAR_CONVERSATION_5MIN.
+    Le seuil de burst ne devient testable en conditions reelles que si
+    cette limite est reglee a une valeur >= RATE_LIMIT_BURST_MAX (sinon
+    elle bloque le 2e envoi avant que le burst ne soit jamais atteint)."""
+    monkeypatch.setenv("RATE_LIMIT_PAR_CONVERSATION_5MIN", "5")
     monkeypatch.setenv("RATE_LIMIT_BURST_MAX", "3")
     monkeypatch.setenv("RATE_LIMIT_PAR_DESTINATAIRE_24H", "10")  # isole du test
     destinataire = "212600000077"

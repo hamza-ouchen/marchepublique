@@ -33,3 +33,8 @@ langsmith/
 # Build / cache
 .turbo/
 coverage/
+
+# Astra DB / secrets divers — jamais commités
+**/astra-credentials.json
+**/astra-credentials*.json
+

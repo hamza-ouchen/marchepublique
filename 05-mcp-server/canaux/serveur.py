@@ -12,6 +12,10 @@ Transport : stdio (FastMCP) — appelé par les agents (CONCIERGE, etc.)
 comme un outil MCP standard, pas comme une API HTTP.
 """
 
+import os
+import re
+from pathlib import Path
+
 from mcp.server.fastmcp import FastMCP
 
 from client_email import EmailError, envoyer_template_email
@@ -20,7 +24,63 @@ from gabarits import GABARITS, obtenir_gabarit
 from journal import journaliser_tentative
 from securite import SecuriteError, marquer_succes, verifier_envoi
 
-mcp = FastMCP("canaux")
+
+def _charger_env(chemin: Path) -> None:
+    """Charge .env sans jamais écraser une variable déjà définie."""
+    if not chemin.exists():
+        return
+    for brute in chemin.read_text(encoding="utf-8-sig").splitlines():
+        ligne = brute.strip()
+        if not ligne or ligne.startswith("#") or "=" not in ligne:
+            continue
+        cle, valeur = ligne.split("=", 1)
+        # Supprimer les commentaires en fin de ligne (ex: "10   # ex: ...")
+        valeur = re.split(r"\s+#", valeur, maxsplit=1)[0].strip().strip('"').strip("'")
+        os.environ.setdefault(cle.strip(), valeur)
+
+
+_charger_env(Path(__file__).with_name(".env"))
+
+_mode = os.environ.get("MCP_TRANSPORT", "stdio")
+_port = int(os.environ.get("FASTMCP_PORT", "8204"))
+_host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
+
+_auth_token = (
+    os.environ.get("MCP_AUTH_TOKEN", "").strip()
+    or os.environ.get("FASTMCP_AUTH_TOKEN", "").strip()
+)
+
+_kwargs = {"host": _host, "port": _port}
+if _mode in ("sse", "streamable-http"):
+    from mcp.server.transport_security import TransportSecuritySettings
+    _kwargs["transport_security"] = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+mcp = FastMCP("canaux", **_kwargs)
+
+# ── Middleware d'authentification par clé API (en-tête personnalisé) ──
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
+
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    """Vérifie la clé API dans l'en-tête X-API-Key (ou api-mcp-key)."""
+
+    def __init__(self, app, api_key: str):
+        super().__init__(app)
+        self.api_key = api_key
+
+    async def dispatch(self, request, call_next):
+        if self.api_key and request.url.path != "/":
+            key = (
+                request.headers.get("x-api-key")
+                or request.headers.get("api-mcp-key")
+            )
+            if not key or key != self.api_key:
+                return JSONResponse(
+                    {"error": "unauthorized", "detail": "Clé API manquante ou invalide"},
+                    status_code=401,
+                )
+        return await call_next(request)
 
 
 @mcp.tool()
@@ -53,7 +113,14 @@ async def envoyer_whatsapp(
         return {"succes": False, "erreur": str(exc)}
 
     try:
-        resultat = await envoyer_template_whatsapp(destinataire, nom_gabarit, variables)
+        # WhatsApp utilise des paramètres POSITIONNELS ({{1}}, {{2}}, ...) :
+        # on réordonne les variables selon l'ordre déclaré dans le gabarit,
+        # indépendamment de l'ordre fourni par l'appelant.
+        gabarit = obtenir_gabarit(nom_gabarit)
+        variables_ordonees = {name: variables[name] for name in gabarit.variables}
+        resultat = await envoyer_template_whatsapp(
+            destinataire, nom_gabarit, variables_ordonees, langue=gabarit.langue
+        )
     except WhatsAppError as exc:
         journaliser_tentative(
             "envoyer_whatsapp", destinataire, nom_gabarit, ref,
@@ -141,4 +208,19 @@ def verifier_templates(appelant: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    if transport in ("sse", "streamable-http"):
+        import uvicorn
+        from starlette.applications import Starlette
+
+        # Both transports on one port: /mcp (Streamable HTTP) + /sse (legacy SSE)
+        http_app = mcp.streamable_http_app()
+        sse_app = mcp.sse_app()
+        combined = Starlette(
+            routes=list(http_app.routes) + list(sse_app.routes),
+            lifespan=http_app.router.lifespan_context,
+        )
+        combined.add_middleware(APIKeyMiddleware, api_key=_auth_token)
+        uvicorn.run(combined, host=_host, port=_port, log_level="info")
+    else:
+        mcp.run(transport=transport)

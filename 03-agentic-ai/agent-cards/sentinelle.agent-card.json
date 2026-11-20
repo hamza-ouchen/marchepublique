@@ -1,0 +1,33 @@
+{
+  "name": "SENTINELLE",
+  "description": "Phase 2 — veille du marché sur les archives d'attribution : détecte les anomalies (offre < 70 % du médian, attributions répétées au même titulaire…). ZÉRO action client.",
+  "url": "http://localhost:8105",
+  "version": "0.1.0-p2",
+  "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
+  "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },
+  "securitySchemes": {
+    "internal-token": { "type": "apiKey", "in": "header", "name": "X-Internal-Token" }
+  },
+  "security": [{ "internal-token": [] }],
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "observer_marche",
+      "name": "Veille des attributions",
+      "description": "Analyse périodiquement les avis d'attribution stockés dans tenders (statut=attribution), enregistre les anomalies détectées dans alertes_sentinelle (table P2 — pas encore créée). Zéro action client.",
+      "tags": ["veille", "attributions", "anomalies", "phase-2"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "date": "2026-11-17" } }] }
+      ]
+    }
+  ],
+  "x_sou9na": {
+    "proprietaire": "Achraf Outlit",
+    "dossier": "04-langgraph/sentinelle/",
+    "entrees": { "data": { "date": "ISO-8601 (YYYY-MM-DD)" } },
+    "sorties": { "anomalies_detectees": "int", "libelles": "list[string]" },
+    "appelant_autorise": "RÉGISSEUR (batch hebdo) ou console admin",
+    "memoire": "lecture tenders (via MCP base-donnees · appelant=SENTINELLE) · écriture alertes_sentinelle — table P2 à créer"
+  }
+}
