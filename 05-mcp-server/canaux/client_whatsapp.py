@@ -18,8 +18,13 @@ class WhatsAppError(Exception):
 
 
 def _config() -> tuple[str, str, str]:
-    token = os.environ["WHATSAPP_TOKEN"]
-    phone_number_id = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
+    token = os.getenv("WHATSAPP_TOKEN")
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+    if not token or not phone_number_id:
+        raise WhatsAppError(
+            "Configuration WhatsApp manquante : WHATSAPP_TOKEN / "
+            "WHATSAPP_PHONE_NUMBER_ID doivent être définis dans .env"
+        )
     api_version = os.getenv("WHATSAPP_API_VERSION", "v21.0")
     return token, phone_number_id, api_version
 
@@ -28,6 +33,7 @@ async def envoyer_template_whatsapp(
     destinataire: str,
     nom_template: str,
     variables: dict[str, str],
+    langue: str = "fr",
 ) -> dict:
     """Envoie un message template WhatsApp via l'API Graph de Meta.
 
@@ -59,7 +65,7 @@ async def envoyer_template_whatsapp(
         "type": "template",
         "template": {
             "name": nom_template,
-            "language": {"code": "fr"},  # TODO(Ayoub): rendre dynamique si multi-langue
+            "language": {"code": langue},  # fr / ar / en (template approved on Meta)
             "components": [
                 {"type": "body", "parameters": parametres}
             ] if parametres else [],

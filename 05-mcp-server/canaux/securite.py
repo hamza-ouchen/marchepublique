@@ -148,7 +148,13 @@ _COMPTEURS: dict[str, _CompteurDestinataire] = {}
 
 
 def _seuil(nom_var: str, defaut: int) -> int:
-    return int(os.getenv(nom_var, defaut))
+    brut = os.getenv(nom_var, str(defaut))
+    # Tolérer les commentaires en fin de ligne : "10   # ex: ..."
+    brut = brut.split("#", 1)[0].strip()
+    try:
+        return int(brut.split()[0]) if brut.split() else defaut
+    except (ValueError, IndexError):
+        return defaut
 
 
 def verifier_rate_limit(destinataire: str) -> None:
@@ -160,7 +166,8 @@ def verifier_rate_limit(destinataire: str) -> None:
     compteur = _COMPTEURS.setdefault(destinataire, _CompteurDestinataire())
 
     burst_max = _seuil("RATE_LIMIT_BURST_MAX", 10)
-    fenetre_conversation = _seuil("RATE_LIMIT_PAR_CONVERSATION_5MIN", 1) and 5 * 60
+    limite_conversation = _seuil("RATE_LIMIT_PAR_CONVERSATION_5MIN", 1)
+    fenetre_conversation = 5 * 60
     fenetre_24h = 24 * 60 * 60
     max_24h = _seuil("RATE_LIMIT_PAR_DESTINATAIRE_24H", 1)
 
@@ -181,10 +188,10 @@ def verifier_rate_limit(destinataire: str) -> None:
     appels_conversation = [
         h for h in compteur.horodatages if maintenant - h < fenetre_conversation
     ]
-    if len(appels_conversation) >= 1:
+    if len(appels_conversation) >= limite_conversation:
         raise SecuriteError(
             f"Trop tôt pour reparler à '{destinataire}' "
-            f"(limite 1 message / {fenetre_conversation // 60} min)"
+            f"(limite {limite_conversation} message(s) / 5 min)"
         )
 
     # Par destinataire sur 24h (ex. 1 digest / jour)

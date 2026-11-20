@@ -1,0 +1,17 @@
+PLATEFORME E-LEARNING POUR CENTRES DE FORMATION PROFESSIONNELLE
+Référence : 2026/DTR/0131
+Maître d'ouvrage : Département de la Formation Professionnelle
+
+1. Objet
+Conception et déploiement d'une plateforme e-learning multi-tenant destinée aux centres de formation professionnelle.
+
+2. Exigences fonctionnelles
+La plateforme doit gérer les parcours, les évaluations, les certificats et les tableaux de bord de progression.
+Un mode hors ligne est exigé pour les centres à connectivité limitée.
+
+3. Hébergement et sécurité
+L'hébergement doit être réalisé au Maroc, avec chiffrement des données au repos et en transit.
+La conformité à la loi 09-08 est obligatoire.
+
+4. Délai
+Le déploiement pilote doit être livré en 90 jours.

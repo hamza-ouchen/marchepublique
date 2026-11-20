@@ -1,0 +1,32 @@
+{
+  "cas": "A2 — addenda n° 1 (second document du même AO)",
+  "reference": "2026/DTR/0124",
+  "document_name": "addenda-1.pdf",
+  "storage_path": "2026/2026-DTR-0124/addenda-1.pdf",
+  "pdf": "2026-DTR-0124/addenda-1.pdf",
+  "extraction": "texte",
+  "source_verite_terrain": "sources/2026-DTR-0124-addenda-1.txt",
+  "sections": [
+    {
+      "section_no": 1,
+      "numero": "1",
+      "titre": "Objet de l'addenda",
+      "debut": "Le présent addenda modifie les conditions de délai du cahier des prescriptions s",
+      "longueur": 123
+    },
+    {
+      "section_no": 2,
+      "numero": "2",
+      "titre": "Modification du délai",
+      "debut": "Le délai de livraison et de pose est porté de 150 à 180 jours calendaires à comp",
+      "longueur": 173
+    },
+    {
+      "section_no": 3,
+      "numero": "3",
+      "titre": "Incidence financière",
+      "debut": "Aucune incidence financière supplémentaire n'est accordée du fait de cette proro",
+      "longueur": 87
+    }
+  ]
+}
