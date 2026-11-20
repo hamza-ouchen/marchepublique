@@ -106,6 +106,12 @@ export default function Home() {
           <HeroIllustration />
         </div>
       </main>
+
+      <footer className="mx-auto max-w-6xl px-6 py-6">
+        <Link href="/sante" className="text-xs text-sand-900/40 hover:text-sand-900/70 hover:underline">
+          {t("status.footerLink")}
+        </Link>
+      </footer>
     </div>
   );
 }

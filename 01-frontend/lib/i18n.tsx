@@ -199,6 +199,30 @@ export const DICTIONARY: Record<string, Record<Lang, string>> = {
     fr: "La limite de sieges du plan 499 n'est pas encore fixee officiellement — valeur provisoire en attendant confirmation de l'equipe.",
     ar: "الحد الأقصى لمقاعد العرض 499 لم يُحدد رسميا بعد — قيمة مؤقتة في انتظار تأكيد الفريق.",
   },
+
+  "status.title": { fr: "Sante du service", ar: "حالة الخدمة" },
+  "status.subtitle": {
+    fr: "Transparence sur le fonctionnement de Sou9na, en temps reel.",
+    ar: "شفافية حول عمل سوقنا، في الوقت الحقيقي.",
+  },
+  "status.operationnel": { fr: "Operationnel", ar: "يعمل بشكل جيد" },
+  "status.degrade": { fr: "Mode degrade", ar: "وضع متدهور" },
+  "status.panne": { fr: "Panne", ar: "عطل" },
+  "status.lastCollect": { fr: "Derniere collecte", ar: "آخر تجميع للمعطيات" },
+  "status.offersCollected": { fr: "Avis collectes (24h)", ar: "طلبات العروض المجمعة (24 سا)" },
+  "status.digestStatus": { fr: "Digest quotidien", ar: "الملخص اليومي" },
+  "status.digestOnTime": { fr: "Livre a temps", ar: "تم إرساله في الوقت" },
+  "status.digestLate": { fr: "Retarde", ar: "متأخر" },
+  "status.digestSla": { fr: "Taux de ponctualite (30j)", ar: "نسبة الالتزام بالوقت (30 يوما)" },
+  "status.channels": { fr: "Canaux de distribution", ar: "قنوات التوزيع" },
+  "status.incidents": { fr: "Historique des incidents", ar: "سجل الأعطال" },
+  "status.noIncident": { fr: "Aucun incident recent.", ar: "لا عطل حديث." },
+  "status.resolved": { fr: "Resolu", ar: "تم الحل" },
+  "status.channel.ok": { fr: "Operationnel", ar: "يعمل" },
+  "status.channel.degrade": { fr: "Degrade", ar: "متدهور" },
+  "status.channel.indisponible": { fr: "Indisponible", ar: "غير متاح" },
+  "status.backLink": { fr: "Retour a l'accueil", ar: "الرجوع إلى الصفحة الرئيسية" },
+  "status.footerLink": { fr: "Sante du service", ar: "حالة الخدمة" },
 };
 
 interface LanguageContextValue {

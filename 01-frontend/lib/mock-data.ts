@@ -1,4 +1,4 @@
-import { Conversation, Dossier, StatPoint, TeamMember } from "./types";
+import { Conversation, Dossier, ServiceStatus, StatPoint, TeamMember } from "./types";
 
 // Limite de sieges du plan 499 — PLACEHOLDER, valeur non precisee dans
 // SOU9NA-REF-001 : a confirmer collectivement avant mise en production.
@@ -13,6 +13,23 @@ export const mockTeamMembers: TeamMember[] = [
     dateAjout: "2026-10-01",
   },
 ];
+
+export const mockServiceStatus: ServiceStatus = {
+  etatGlobal: "operationnel",
+  derniereCollecte: "2026-11-20T06:12:00Z",
+  offresCollectees24h: 135,
+  digestLivreAvant8h: true,
+  heureDigest: "07:58",
+  canaux: { whatsapp: "ok", email: "ok", dashboard: "ok" },
+  slaDigest30j: 98.4,
+  incidents: [
+    {
+      date: "2026-11-05",
+      message: "Portail marchespublics.gov.ma indisponible 45 min — mode degrade active, digest livre avec bandeau.",
+      resolu: true,
+    },
+  ],
+};
 
 // Donnees de demonstration pour le prototype frontend.
 // Remplacer par de vrais appels API des que le backend (Hamza Midouni) est branche.

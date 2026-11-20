@@ -129,3 +129,34 @@ export interface TeamMember {
   role: TeamRole;
   dateAjout: string;
 }
+
+// ---------------------------------------------------------------------------
+// Page publique "sante du service" (transparence) — SOU9NA-REF-001 §3.4 +
+// §4.3 (intention RÉGISSEUR "sante" -> INSPECTEUR). Reflete l'etat du
+// pipeline de collecte et de distribution (CONCIERGE), pas celui d'un
+// serveur applicatif generique.
+// ---------------------------------------------------------------------------
+
+export type EtatGlobal = "operationnel" | "degrade" | "panne";
+export type EtatCanal = "ok" | "degrade" | "indisponible";
+
+export interface Incident {
+  date: string;
+  message: string;
+  resolu: boolean;
+}
+
+export interface ServiceStatus {
+  etatGlobal: EtatGlobal;
+  derniereCollecte: string;
+  offresCollectees24h: number;
+  digestLivreAvant8h: boolean;
+  heureDigest: string;
+  canaux: {
+    whatsapp: EtatCanal;
+    email: EtatCanal;
+    dashboard: EtatCanal;
+  };
+  slaDigest30j: number; // % — cible README >= 98%
+  incidents: Incident[];
+}

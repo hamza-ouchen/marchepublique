@@ -26,8 +26,9 @@ import {
   userHistorique,
   mockDossiers,
   mockTeamMembers,
+  mockServiceStatus,
 } from "./mock-data";
-import { Conversation, Dossier, StatPoint, TeamMember } from "./types";
+import { Conversation, Dossier, ServiceStatus, StatPoint, TeamMember } from "./types";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? null;
 
@@ -192,4 +193,11 @@ export function addTeamMember(nom: string, telephone: string): { ok: boolean; er
 export function removeTeamMember(id: string): void {
   // TODO(backend): remplacer par un DELETE `${API_BASE_URL}/equipe/${id}`
   teamState = teamState.filter((m) => m.id !== id);
+}
+
+// GET /statut — page publique "sante du service" (sans authentification).
+// Intention RÉGISSEUR "sante" -> INSPECTEUR (SOU9NA-REF-001 §4.3).
+export function getServiceStatus(): ServiceStatus {
+  // TODO(backend): remplacer par un fetch(`${API_BASE_URL}/statut`) public
+  return mockServiceStatus;
 }
