@@ -35,6 +35,8 @@ def _charger_env(chemin: Path) -> None:
         if not ligne or ligne.startswith("#") or "=" not in ligne:
             continue
         cle, valeur = ligne.split("=", 1)
+        if " #" in valeur:
+            valeur = valeur.split(" #", 1)[0]
         os.environ.setdefault(cle.strip(), valeur.strip().strip('"').strip("'"))
 
 
@@ -48,30 +50,39 @@ if _mode in ("sse", "streamable-http"):
     _kwargs["transport_security"] = TransportSecuritySettings(enable_dns_rebinding_protection=False)
 
 # ── Auth optionnel : si MCP_AUTH_TOKEN est défini, tout transport HTTP
-# exige « Authorization: Bearer <token> » (la plateforme y met son header).
+# exige l'en-tête « X-API-Key: <token> » (ou « api-mcp-key »).
 # Stdio reste sans auth (usage local). Alias historique : FASTMCP_AUTH_TOKEN.
 _auth_token = (
     os.environ.get("MCP_AUTH_TOKEN", "").strip()
     or os.environ.get("FASTMCP_AUTH_TOKEN", "").strip()
 )
 
-class _StaticTokenVerifier:
-    """Vérifie un bearer token statique (séquence interne)."""
-    def __init__(self, token: str):
-        self._token = token
-    async def verify_token(self, token: str):
-        if self._token and token == self._token:
-            return AccessToken(token=token, client_id="sou9na-platform",
-                               scopes=["mcp"], resource=None)
-        return None
+# ── Middleware d'authentification par clé API (en-tête personnalisé) ──
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
-if _mode in ("sse", "streamable-http") and _auth_token:
-    _kwargs["token_verifier"] = _StaticTokenVerifier(_auth_token)
-    _kwargs["auth"] = AuthSettings(
-        issuer_url=f"http://127.0.0.1:{_port}/",
-        required_scopes=["mcp"],
-        resource_server_url=f"http://127.0.0.1:{_port}/",
-    )
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    """Vérifie la clé API dans l'en-tête X-API-Key (ou api-mcp-key)."""
+
+    def __init__(self, app, api_key: str):
+        super().__init__(app)
+        self.api_key = api_key
+
+    async def dispatch(self, request, call_next):
+        if self.api_key and request.url.path != "/":
+            key = (
+                request.headers.get("x-api-key")
+                or request.headers.get("api-mcp-key")
+                or request.headers.get("authorization", "").replace("Bearer ", "").strip()
+            )
+            # Auth required: key must be present and valid (like original design)
+            if not key or key != self.api_key:
+                return JSONResponse(
+                    {"error": "unauthorized", "detail": "Clé API manquante ou invalide"},
+                    status_code=401,
+                )
+        return await call_next(request)
 
 mcp = FastMCP("base-donnees", **_kwargs)
 
@@ -206,6 +217,19 @@ def ecrire(
 
 
 if __name__ == "__main__":
-    # stdio (défaut) ; HTTP/StreamableHTTP sur FASTMCP_PORT (exposé via ngrok) :
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
-    mcp.run(transport=transport)
+    if transport in ("sse", "streamable-http"):
+        import uvicorn
+        from starlette.applications import Starlette
+
+        # Both transports on one port: /mcp (Streamable HTTP) + /sse (legacy SSE)
+        http_app = mcp.streamable_http_app()
+        sse_app = mcp.sse_app()
+        combined = Starlette(
+            routes=list(http_app.routes) + list(sse_app.routes),
+            lifespan=http_app.router.lifespan_context,
+        )
+        combined.add_middleware(APIKeyMiddleware, api_key=_auth_token)
+        uvicorn.run(combined, host=_kwargs["host"], port=_kwargs["port"], log_level="info")
+    else:
+        mcp.run(transport=transport)

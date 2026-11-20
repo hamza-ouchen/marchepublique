@@ -29,6 +29,7 @@ class Gabarit:
     canal: Literal["whatsapp", "email"]
     variables: tuple[str, ...]
     description: str
+    langue: str = "fr"   # code langue Meta (fr, ar, en, ...)
 
 
 # --- Registre des gabarits autorisés ---------------------------------
@@ -36,23 +37,75 @@ class Gabarit:
 # créés et approuvés dans Meta Business Manager.
 
 GABARITS: dict[str, Gabarit] = {
+    "hello_world": Gabarit(
+        nom="hello_world",
+        canal="whatsapp",
+        variables=(),
+        description="Template de test Meta (hello_world) — présent par défaut sur tout compte WhatsApp Business.",
+        langue="en_US",
+    ),
     "digest_quotidien": Gabarit(
         nom="digest_quotidien",
         canal="whatsapp",
         variables=("nom_client", "nb_appels_offres", "lien_dashboard"),
         description="Résumé quotidien des appels d'offres pertinents pour un client.",
+        langue="fr",
+    ),
+    "digest_quotidien_fr": Gabarit(
+        nom="digest_quotidien_fr",
+        canal="whatsapp",
+        variables=("nom_client", "nb_appels_offres", "lien_dashboard"),
+        description="Résumé quotidien des appels d'offres pertinents pour un client (FR).",
+        langue="fr",
+    ),
+    "digest_quotidien_ar": Gabarit(
+        nom="digest_quotidien_ar",
+        canal="whatsapp",
+        variables=("nom_client", "nb_appels_offres", "lien_dashboard"),
+        description="ملخص يومي لصفقات المناقصات ذات الصلة للعميل (AR).",
+        langue="ar",
     ),
     "alerte_deadline": Gabarit(
         nom="alerte_deadline",
         canal="whatsapp",
         variables=("nom_client", "titre_appel_offre", "date_limite"),
         description="Alerte : une échéance de dépôt approche pour un appel d'offres suivi.",
+        langue="fr",
+    ),
+    "alerte_deadline_fr": Gabarit(
+        nom="alerte_deadline_fr",
+        canal="whatsapp",
+        variables=("nom_client", "titre_appel_offre", "date_limite"),
+        description="Alerte : une échéance de dépôt approche (FR).",
+        langue="fr",
+    ),
+    "alerte_deadline_ar": Gabarit(
+        nom="alerte_deadline_ar",
+        canal="whatsapp",
+        variables=("nom_client", "titre_appel_offre", "date_limite"),
+        description="تنبيه: اقتراب أجل إيداع عرض لصفقة متابعة (AR).",
+        langue="ar",
     ),
     "rapport_hebdo_email": Gabarit(
         nom="rapport_hebdo_email",
         canal="email",
         variables=("nom_client", "periode", "nb_appels_offres", "lien_dashboard"),
         description="Rapport hebdomadaire envoyé par email (récapitulatif).",
+        langue="fr",
+    ),
+    "rapport_hebdo_email_fr": Gabarit(
+        nom="rapport_hebdo_email_fr",
+        canal="email",
+        variables=("nom_client", "periode", "nb_appels_offres", "lien_dashboard"),
+        description="Rapport hebdomadaire (FR).",
+        langue="fr",
+    ),
+    "rapport_hebdo_email_ar": Gabarit(
+        nom="rapport_hebdo_email_ar",
+        canal="email",
+        variables=("nom_client", "periode", "nb_appels_offres", "lien_dashboard"),
+        description="تقرير أسبوعي (AR).",
+        langue="ar",
     ),
 }
 
