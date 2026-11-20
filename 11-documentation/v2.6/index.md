@@ -1,6 +1,6 @@
 ﻿# 📁 v2.6 — Architecture « canaux » (2026-11-18)
 
-> ⚠️ **Lire dans l'ordre 01 → 04.** Chaque document renvoie au suivant.
+> ⚠️ **Lire dans l'ordre 01 → 07.** Chaque document renvoie au suivant.
 > Tout est frais (non indexé, non publié) — seul ce dossier fait foi pour v2.6.
 > Les documents historiques (doc coloré v1→v4, matrice v3.1, guide v3) restent
 > dans le dossier parent **à titre patrimonial** uniquement.
@@ -17,6 +17,7 @@
 | `04-api-fastapi-concierge.md` | **Le contrat FastAPI ⇄ CONCIERGE** (A2A synchrone, erreurs, tâches FastAPI) | Midouni |
 | `05-mission-ouchen-rag.md` | **Brief Ouchen** — ingestion RAG : réglementation, CPS, golden set | Ouchen |
 | `06-mission-midouni-cps.md` | **Brief Midouni** — capture + OCR des CPS (Supabase Storage + tables, sans LLM) | Midouni |
+| `07-cahier-des-charges-digest.md` | **Le cahier des charges du digest** : chaîne 6 h → 18 h, entrées/sorties attendues, gabarits, idempotence, dégradé, SLA, acceptation | Achraf · Ayoub · Hamza · équipe |
 
 ## 2. Principes (recopiés pour mémoire)
 
@@ -34,6 +35,7 @@
 | `02-brief-ayoub-mcp-canaux.md` | Tâches Ayoub | 🟡 Prêt — démarre sur votre "go" |
 | `03-sorties-concierge.md` | Agent CONCIERGE | 🟡 Prêt — Ayoub valide |
 | `04-api-fastapi-concierge.md` | FastAPI | 🟡 Prêt — Midouni implémente |
+| `07-cahier-des-charges-digest.md` | v2.6 · ADR-001 | ✅ En vigueur — remplace le guide v3 sur l'émission |
 
 *Contexte parent : README v2.5 → v2.6 · doc coloré v4 → v5 · matrice v3.1 → v4.*
 

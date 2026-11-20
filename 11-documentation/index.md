@@ -16,7 +16,8 @@
 │   ├── 03-sorties-concierge.md        14 sorties possibles de CONCIERGE
 │   ├── 04-api-fastapi-concierge.md    contrat FastAPI ⇄ CONCIERGE (A2A)
 │   ├── 05-mission-ouchen-rag.md       Brief OUCHEN — ingestion RAG (réglementation + CPS + golden set)
-│   └── 06-mission-midouni-cps.md      Brief MIDOUNI — capture CPS (Storage + tables, pypdf/OCR)
+│   ├── 06-mission-midouni-cps.md      Brief MIDOUNI — capture CPS (Storage + tables, pypdf/OCR)
+│   └── 07-cahier-des-charges-digest.md  cahier des charges du digest (E/S, SLA, dégradé)
 ├── v4/                            ← doc coloré v4 (16 tables, couche plateforme)
 │   ├── agents-es-matrice-cas-v4.html
 │   └── agents-es-matrice-cas-v4.pdf
