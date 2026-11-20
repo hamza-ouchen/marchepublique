@@ -42,6 +42,18 @@ def tenders_get(reference):
     return rows[0] if rows else None
 
 
+def tender_documents_list(*, reference=None, statut=None, limit=100, offset=0):
+    sql = "SELECT * FROM tender_documents WHERE 1=1"
+    params = []
+    if reference:
+        sql += " AND reference = %s"; params.append(reference)
+    if statut:
+        sql += " AND statut = %s"; params.append(statut)
+    sql += " ORDER BY downloaded_at DESC NULLS LAST, id DESC LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+    return query(sql, tuple(params))
+
+
 def tender_document_by_reference(reference):
     rows = query("SELECT * FROM tender_documents WHERE reference = %s "
                  "ORDER BY downloaded_at DESC NULLS LAST, id DESC LIMIT 1", (reference,))
