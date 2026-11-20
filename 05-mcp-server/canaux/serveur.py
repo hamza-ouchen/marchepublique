@@ -14,7 +14,7 @@ comme un outil MCP standard, pas comme une API HTTP.
 
 from mcp.server.fastmcp import FastMCP
 
-from client_brevo import BrevoError, envoyer_template_email
+from client_email import EmailError, envoyer_template_email
 from client_whatsapp import WhatsAppError, envoyer_template_whatsapp
 from gabarits import GABARITS, obtenir_gabarit
 from journal import journaliser_tentative
@@ -96,7 +96,7 @@ async def envoyer_email(
 
     try:
         resultat = await envoyer_template_email(destinataire, sujet, corps_html)
-    except BrevoError as exc:
+    except EmailError as exc:
         journaliser_tentative(
             "envoyer_email", destinataire, nom_gabarit, ref,
             statut="echec_api", details=str(exc),
