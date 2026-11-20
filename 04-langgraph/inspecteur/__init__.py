@@ -1,0 +1,1 @@
+"""Module INSPECTEUR — collecte/extraction CPS."""
