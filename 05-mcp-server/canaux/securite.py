@@ -160,7 +160,24 @@ def verifier_rate_limit(destinataire: str) -> None:
     compteur = _COMPTEURS.setdefault(destinataire, _CompteurDestinataire())
 
     burst_max = _seuil("RATE_LIMIT_BURST_MAX", 10)
-    fenetre_conversation = _seuil("RATE_LIMIT_PAR_CONVERSATION_5MIN", 1) and 5 * 60
+    # BUGFIX(Ayoub, 20/11/2026) : l'ancienne ligne
+    # `_seuil(...) and 5 * 60` ignorait la vraie valeur numérique de
+    # RATE_LIMIT_PAR_CONVERSATION_5MIN (seule sa "vérité" comptait,
+    # donc 1, 2 ou 10 donnaient tous la même fenêtre de 300s). La
+    # variable est en réalité un interrupteur on/off pour cette règle
+    # précise ; on le rend explicite ci-dessous.
+    #
+    # ATTENTION conflit connu : tant que cette règle est active (valeur
+    # non nulle, défaut), elle rejette tout 2e envoi à un même
+    # destinataire avant même que RATE_LIMIT_BURST_MAX ne puisse être
+    # atteint (1 message/5min est structurellement plus strict que
+    # N messages/minute pour N > 1 sur le même destinataire). Le seuil
+    # de burst ne devient donc réellement testable en conditions
+    # réelles que si l'équipe désactive cette règle via
+    # RATE_LIMIT_PAR_CONVERSATION_5MIN=0 — décision métier à prendre
+    # par l'équipe, pas un choix technique de ce fichier.
+    regle_conversation_active = bool(_seuil("RATE_LIMIT_PAR_CONVERSATION_5MIN", 1))
+    fenetre_conversation = 5 * 60
     fenetre_24h = 24 * 60 * 60
     max_24h = _seuil("RATE_LIMIT_PAR_DESTINATAIRE_24H", 1)
 
@@ -177,15 +194,17 @@ def verifier_rate_limit(destinataire: str) -> None:
             f"({len(appels_recents)}/{burst_max} appels/minute)"
         )
 
-    # Par conversation (fenêtre courte, ex. 5 min)
-    appels_conversation = [
-        h for h in compteur.horodatages if maintenant - h < fenetre_conversation
-    ]
-    if len(appels_conversation) >= 1:
-        raise SecuriteError(
-            f"Trop tôt pour reparler à '{destinataire}' "
-            f"(limite 1 message / {fenetre_conversation // 60} min)"
-        )
+    # Par conversation (fenêtre courte, ex. 5 min) — désactivable via
+    # RATE_LIMIT_PAR_CONVERSATION_5MIN=0 (voir note ci-dessus)
+    if regle_conversation_active:
+        appels_conversation = [
+            h for h in compteur.horodatages if maintenant - h < fenetre_conversation
+        ]
+        if len(appels_conversation) >= 1:
+            raise SecuriteError(
+                f"Trop tôt pour reparler à '{destinataire}' "
+                f"(limite 1 message / {fenetre_conversation // 60} min)"
+            )
 
     # Par destinataire sur 24h (ex. 1 digest / jour)
     if len(compteur.horodatages) >= max_24h:

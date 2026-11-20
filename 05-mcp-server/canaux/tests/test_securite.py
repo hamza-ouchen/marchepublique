@@ -123,7 +123,7 @@ def test_rate_limit_burst_depasse_rejete(monkeypatch):
 
     # Injection directe de l'état interne pour isoler le contrôle burst
     # de la règle "1 message / 5 min" (qui rejetterait de toute façon
-    # dès le 2e appel réel — voir le TODO soulevé plus bas).
+    # dès le 2e appel réel — voir le test ci-dessous pour le cas réel).
     compteur = securite._COMPTEURS.setdefault(
         destinataire, securite._CompteurDestinataire()
     )
@@ -134,16 +134,22 @@ def test_rate_limit_burst_depasse_rejete(monkeypatch):
         verifier_rate_limit(destinataire)
 
 
-# NOTE(Ayoub) : la règle "par conversation" (1 message / 5 min, voir
-# test_rate_limit_2e_appel_rapide_rejete) est actuellement appliquée de
-# façon inconditionnelle (indépendante de RATE_LIMIT_PAR_CONVERSATION_5MIN,
-# cf. securite.py ligne ~132 : `_seuil(...) and 5 * 60` ne lit jamais la
-# vraie valeur du seuil, juste sa "vérité"). Conséquence concrète : dans
-# le flux réel (serveur.py), un 2e envoi au même destinataire dans les 5
-# minutes est TOUJOURS rejeté par cette règle avant même que
-# RATE_LIMIT_BURST_MAX puisse s'appliquer — le seuil de burst (ex. "10
-# appels/minute") n'est donc atteignable qu'en théorie, jamais en
-# pratique avec le code actuel. À confirmer avec l'équipe si c'est le
-# comportement voulu (1 message/5min prime toujours sur le burst) ou si
-# RATE_LIMIT_PAR_CONVERSATION_5MIN doit réellement moduler la fenêtre/le
-# nombre autorisé.
+def test_rate_limit_conversation_desactivee_laisse_burst_jouer(monkeypatch):
+    """BUGFIX(Ayoub, 20/11/2026) : quand l'équipe désactive la règle
+    'par conversation' (RATE_LIMIT_PAR_CONVERSATION_5MIN=0), le seuil
+    de burst redevient atteignable en conditions réelles (plusieurs
+    appels consécutifs réels, pas une injection isolée)."""
+    monkeypatch.setenv("RATE_LIMIT_PAR_CONVERSATION_5MIN", "0")
+    monkeypatch.setenv("RATE_LIMIT_BURST_MAX", "3")
+    monkeypatch.setenv("RATE_LIMIT_PAR_DESTINATAIRE_24H", "10")  # isole du test
+    destinataire = "212600000077"
+
+    verifier_rate_limit(destinataire)
+    marquer_envoi(destinataire)
+    verifier_rate_limit(destinataire)
+    marquer_envoi(destinataire)
+    verifier_rate_limit(destinataire)
+    marquer_envoi(destinataire)
+
+    with pytest.raises(SecuriteError, match="Burst dépassé"):
+        verifier_rate_limit(destinataire)  # 4e appel réel : burst atteint
