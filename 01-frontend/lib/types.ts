@@ -111,3 +111,21 @@ export interface Dossier {
   statut: StatutDossier;
   favori: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Gestion d'equipe (plan 499) — SOU9NA-REF-001 §3.4. Endpoint backend prevu :
+// /equipe (couche plateforme, migrations 003/004). La limite de sieges du
+// plan 499 n'est pas chiffree dans le document de reference ; PLAN_499_SEAT_LIMIT
+// (lib/mock-data.ts) est un PLACEHOLDER a confirmer avec l'equipe, pas une
+// valeur officielle.
+// ---------------------------------------------------------------------------
+
+export type TeamRole = "titulaire" | "membre";
+
+export interface TeamMember {
+  id: string;
+  nom: string;
+  telephone: string;
+  role: TeamRole;
+  dateAjout: string;
+}

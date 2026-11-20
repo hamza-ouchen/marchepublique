@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, History, UserCircle, FolderSearch } from "lucide-react";
+import { LayoutDashboard, History, UserCircle, FolderSearch, Users } from "lucide-react";
 import { RequireRole } from "@/components/RequireRole";
 import { Sidebar, NavItem } from "@/components/Sidebar";
 import { useLanguage } from "@/lib/i18n";
@@ -12,6 +12,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     { href: "/user", label: t("nav.dashboard"), icon: LayoutDashboard },
     { href: "/user/dossiers", label: t("nav.dossiers"), icon: FolderSearch },
     { href: "/user/historique", label: t("nav.history"), icon: History },
+    { href: "/user/equipe", label: t("nav.team"), icon: Users },
     { href: "/user/profil", label: t("nav.profile"), icon: UserCircle },
   ];
 

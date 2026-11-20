@@ -16,6 +16,7 @@ export default function DossiersPage() {
   const [region, setRegion] = useState("");
   const [verdict, setVerdict] = useState<Verdict | "">("");
   const [montantMin, setMontantMin] = useState("");
+  const [favorisOnly, setFavorisOnly] = useState(false);
 
   const filtered = useMemo(() => {
     return dossiers
@@ -23,8 +24,9 @@ export default function DossiersPage() {
       .filter((d) => (region ? d.region === region : true))
       .filter((d) => (verdict ? d.verdict === verdict : true))
       .filter((d) => (montantMin ? d.montantMad >= Number(montantMin) : true))
+      .filter((d) => (favorisOnly ? d.favori : true))
       .sort((a, b) => b.match.total - a.match.total);
-  }, [dossiers, secteur, region, verdict, montantMin]);
+  }, [dossiers, secteur, region, verdict, montantMin, favorisOnly]);
 
   function toggleFavori(reference: string, current: boolean) {
     setDossierFavori(reference, !current);
@@ -68,6 +70,15 @@ export default function DossiersPage() {
           value={montantMin}
           onChange={(e) => setMontantMin(e.target.value)}
         />
+        <label className="flex items-center gap-2 text-sm text-sand-900/70 sm:col-span-4">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-sand-300 text-brand-600 focus:ring-brand-500"
+            checked={favorisOnly}
+            onChange={(e) => setFavorisOnly(e.target.checked)}
+          />
+          {t("dossiers.favorisOnly")}
+        </label>
       </div>
 
       <div className="space-y-3">

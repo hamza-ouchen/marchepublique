@@ -177,6 +177,28 @@ export const DICTIONARY: Record<string, Record<Lang, string>> = {
   "controle.ok": { fr: "OK", ar: "جيد" },
   "controle.risque": { fr: "Risque", ar: "خطر" },
   "controle.ko": { fr: "Eliminatoire", ar: "إقصائي" },
+
+  "dossiers.favorisOnly": { fr: "Favoris seulement", ar: "المفضلة فقط" },
+
+  "nav.team": { fr: "Equipe", ar: "الفريق" },
+  "team.title": { fr: "Gestion d'equipe", ar: "تدبير الفريق" },
+  "team.subtitle": { fr: "Membres de votre equipe sur le plan 499.", ar: "أعضاء فريقكم في العرض 499." },
+  "team.seatsUsed": { fr: "sieges utilises", ar: "مقاعد مستعملة" },
+  "team.seatLimitReached": {
+    fr: "Limite de sieges atteinte pour ce plan. Contactez-nous pour passer a un plan superieur.",
+    ar: "تم الوصول إلى الحد الأقصى للمقاعد في هذا العرض. تواصلوا معنا للانتقال إلى عرض أعلى.",
+  },
+  "team.inviteTitle": { fr: "Inviter un membre", ar: "دعوة عضو" },
+  "team.memberName": { fr: "Nom du membre", ar: "اسم العضو" },
+  "team.invite": { fr: "Inviter", ar: "دعوة" },
+  "team.remove": { fr: "Retirer", ar: "إزالة" },
+  "team.role.titulaire": { fr: "Titulaire", ar: "المسؤول الرئيسي" },
+  "team.role.membre": { fr: "Membre", ar: "عضو" },
+  "team.since": { fr: "Depuis", ar: "منذ" },
+  "team.placeholderNotice": {
+    fr: "La limite de sieges du plan 499 n'est pas encore fixee officiellement — valeur provisoire en attendant confirmation de l'equipe.",
+    ar: "الحد الأقصى لمقاعد العرض 499 لم يُحدد رسميا بعد — قيمة مؤقتة في انتظار تأكيد الفريق.",
+  },
 };
 
 interface LanguageContextValue {

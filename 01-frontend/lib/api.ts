@@ -25,8 +25,9 @@ import {
   clientsTable,
   userHistorique,
   mockDossiers,
+  mockTeamMembers,
 } from "./mock-data";
-import { Conversation, Dossier, StatPoint } from "./types";
+import { Conversation, Dossier, StatPoint, TeamMember } from "./types";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? null;
 
@@ -160,4 +161,35 @@ export function setDossierFavori(reference: string, favori: boolean): void {
 export function setDossierStatut(reference: string, statut: Dossier["statut"]): void {
   // TODO(backend): remplacer par un PATCH `${API_BASE_URL}/me/dossiers/${reference}`
   dossiersState = dossiersState.map((d) => (d.reference === reference ? { ...d, statut } : d));
+}
+
+// GET /equipe — membres de l'equipe TPME connectee (plan 499).
+let teamState: TeamMember[] = mockTeamMembers;
+
+export function getTeamMembers(): TeamMember[] {
+  // TODO(backend): remplacer par un fetch(`${API_BASE_URL}/equipe`)
+  return teamState;
+}
+
+export function addTeamMember(nom: string, telephone: string): { ok: boolean; error?: string } {
+  // TODO(backend): remplacer par un POST `${API_BASE_URL}/equipe`
+  if (teamState.find((m) => m.telephone === telephone)) {
+    return { ok: false, error: "Ce numero fait deja partie de l'equipe." };
+  }
+  teamState = [
+    ...teamState,
+    {
+      id: `tm-${Date.now()}`,
+      nom,
+      telephone,
+      role: "membre",
+      dateAjout: new Date().toISOString().slice(0, 10),
+    },
+  ];
+  return { ok: true };
+}
+
+export function removeTeamMember(id: string): void {
+  // TODO(backend): remplacer par un DELETE `${API_BASE_URL}/equipe/${id}`
+  teamState = teamState.filter((m) => m.id !== id);
 }

@@ -1,4 +1,18 @@
-import { Conversation, Dossier, StatPoint } from "./types";
+import { Conversation, Dossier, StatPoint, TeamMember } from "./types";
+
+// Limite de sieges du plan 499 — PLACEHOLDER, valeur non precisee dans
+// SOU9NA-REF-001 : a confirmer collectivement avant mise en production.
+export const PLAN_499_SEAT_LIMIT = 3;
+
+export const mockTeamMembers: TeamMember[] = [
+  {
+    id: "tm-1",
+    nom: "Youssef Amrani",
+    telephone: "212612345678",
+    role: "titulaire",
+    dateAjout: "2026-10-01",
+  },
+];
 
 // Donnees de demonstration pour le prototype frontend.
 // Remplacer par de vrais appels API des que le backend (Hamza Midouni) est branche.
