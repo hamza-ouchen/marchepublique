@@ -98,14 +98,19 @@ Pour revenir à Brevo après la soutenance : décommenter les variables
       vraie mise en production après la soutenance.
 - [ ] Remplacer le stockage en mémoire (idempotence, rate limit) par
       un stockage persistant si le serveur doit survivre à un redémarrage.
-- [ ] **À confirmer avec l'équipe** : la règle "1 message / 5 min par
-      conversation" rejette toujours le 2e appel avant que le seuil de
-      burst (`RATE_LIMIT_BURST_MAX`) ne puisse jamais s'appliquer en
-      conditions réelles (testé uniquement de façon isolée via
-      monkeypatch dans `tests/test_securite.py` — voir la note en bas
-      de ce fichier). À trancher : est-ce le comportement voulu, ou
-      `RATE_LIMIT_PAR_CONVERSATION_5MIN` doit-il réellement moduler la
-      fenêtre/le nombre autorisé ?
+- [x] **Bug corrigé (20/11/2026)** : `RATE_LIMIT_PAR_CONVERSATION_5MIN`
+      était lu avec `valeur and 5*60`, qui ignorait sa vraie valeur
+      numérique — corrigé en interrupteur explicite (`0` = désactivé).
+      Test `test_rate_limit_conversation_desactivee_laisse_burst_jouer`
+      ajouté.
+- [ ] **Décision métier à confirmer avec l'équipe** : tant que la règle
+      "1 message / 5 min par conversation" reste active (valeur par
+      défaut), elle rejette structurellement tout 2e envoi avant que
+      `RATE_LIMIT_BURST_MAX` ne puisse jamais être atteint en conditions
+      réelles (1 msg/5min est plus strict que N msg/min pour N > 1 sur
+      le même destinataire). Le seuil de burst n'est donc réellement
+      utile que si l'équipe désactive la règle "par conversation"
+      (`RATE_LIMIT_PAR_CONVERSATION_5MIN=0`) — à trancher collectivement.
 
 ## Problèmes rencontrés et solutions
 

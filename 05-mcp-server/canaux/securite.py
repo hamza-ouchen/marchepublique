@@ -166,6 +166,19 @@ def verifier_rate_limit(destinataire: str) -> None:
     compteur = _COMPTEURS.setdefault(destinataire, _CompteurDestinataire())
 
     burst_max = _seuil("RATE_LIMIT_BURST_MAX", 10)
+    # BUGFIX (corrigé indépendamment sur develop) : l'ancienne ligne
+    # `_seuil(...) and 5 * 60` ignorait la vraie valeur numérique de
+    # RATE_LIMIT_PAR_CONVERSATION_5MIN — corrigé en seuil numérique
+    # explicite ci-dessous.
+    #
+    # ATTENTION conflit connu : avec cette lecture, RATE_LIMIT_PAR_CONVERSATION_5MIN=0
+    # signifie "0 message autorisé" et bloque donc TOUT envoi (ce n'est PAS
+    # un interrupteur "désactiver la règle"). Et tant que cette limite reste
+    # basse (valeur par défaut 1), elle rejette un 2e envoi à un même
+    # destinataire avant même que RATE_LIMIT_BURST_MAX ne puisse être atteint
+    # en conditions réelles — pour tester le burst réellement, il faut monter
+    # RATE_LIMIT_PAR_CONVERSATION_5MIN à une valeur >= RATE_LIMIT_BURST_MAX.
+    # Décision métier à confirmer avec l'équipe, pas un choix technique de ce fichier.
     limite_conversation = _seuil("RATE_LIMIT_PAR_CONVERSATION_5MIN", 1)
     fenetre_conversation = 5 * 60
     fenetre_24h = 24 * 60 * 60
