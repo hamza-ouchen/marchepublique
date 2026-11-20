@@ -1,9 +1,9 @@
-# SOU9NA — Projet « La Régie »
+﻿# SOU9NA — Projet « La Régie »
 ### Document de référence : organisation, responsabilités, contrats et architecture technique
 
 | Référence | SOU9NA-REF-001 |
 |---|---|
-| **Version** | 2.5 |
+| **Version** | 2.6 |
 | **Date** | Novembre 2026 |
 | **Statut** | Approuvé — document de travail interne |
 | **Rédaction** | Équipe Sou9na (collectif, sans responsable unique) |
@@ -44,10 +44,10 @@ dans son périmètre.
 
 | # | Membre | Agent principal | Périmètres secondaires | Technologies |
 |---|--------|-----------------|------------------------|--------------|
-| 1 | **Hamza Mhalli** | 🧭 **RÉGISSEUR** — superviseur / orchestration | Serveurs MCP · tenue du tableau ClickUp | LangGraph (supervisor), MCP |
+| 1 | **Hamza Mhalli** | 🧭 **RÉGISSEUR** — superviseur / orchestration | Serveurs MCP (**3 / 4** : portail-marches, base-connaissances, base-donnees) · tenue du tableau ClickUp | LangGraph (supervisor), MCP |
 | 2 | **Hamza Midouni** | 🔍 **INSPECTEUR** — collecte / extraction des données | Backend FastAPI (API, webhooks, cron) | LangGraph, FastAPI, scraping |
 | 3 | **Hamza Ouchen** | ⚖️ **JUGE** — éligibilité / verdict | 🔐 **Sécurité** (équipe rouge + équipe bleue) · 🚀 **Déploiement** (GitHub, CI/CD, Render) · Connaissances (RAG) | Agentic AI (JUGE) · LangGraph (équipe rouge) · CI/CD · RAG |
-| 4 | **Ayoub Abdelmoughit** | 💬 **CONCIERGE** — conversation WhatsApp / FAQ RAG | Frontend dashboard (Next.js / React) | Agentic AI, Next.js, React |
+| 4 | **Ayoub Abdelmoughit** | 💬 **CONCIERGE** — conversation WhatsApp / FAQ RAG | Frontend dashboard (Next.js / React) · **MCP `canaux`** (WhatsApp Cloud API + Brevo/SMTP — propriétaire du serveur d'envoi) | Agentic AI, Next.js, React, MCP |
 | 5 | **Achraf Outlit** | 🎯 **COMPAGNON** — matching / digest | 🛰️ SENTINELLE (phase 2) · Observabilité | Agentic AI (COMPAGNON) · LangGraph (SENTINELLE) · LangSmith |
 
 ### 2.2 Matrice RACI (qui réalise, qui approuve, qui est consulté)
@@ -61,7 +61,7 @@ dans son périmètre.
 | Verdict & éligibilité | Ouchen | Équipe | Abdelmoughit | Tous |
 | Base de connaissances (RAG) — contenu & ingestion | Ouchen | Équipe | Mhalli | Tous |
 | Enveloppes des serveurs MCP (3 serveurs) | Mhalli | Équipe | Ouchen | Tous |
-| Envoi des messages (module intégré CONCIERGE) | Abdelmoughit | Équipe | Midouni | Tous |
+| Envoi des messages (via MCP `canaux` — Ayoub) | Abdelmoughit | Équipe | Ouchen (sécurité), Midouni | Tous |
 | Sécurité (rouge + bleue) | Ouchen | Équipe | Midouni | Tous |
 | Déploiement & CI/CD | Ouchen | Équipe | Outlit | Tous |
 | Conversation WhatsApp | Abdelmoughit | Équipe | Ouchen | Tous |
@@ -124,17 +124,19 @@ jamais le travail métier : il route, supervise et escalade.
 3. Gérer les escalades (coût LLM dépassé, agent en erreur, question hors périmètre) →
    remise à l'humain (HITL).
 4. Consommer les Agent Cards publiées par les autres agents pour router.
-5. Enregistrer les outils du projet comme serveurs MCP (**3 serveurs** : portail,
-   base de connaissances, base de données) — chaque agent ne voit que les serveurs
-   de son contrat (§4). **Il n'y a pas de serveur MCP d'envoi** : l'envoi est intégré
-   dans CONCIERGE (module isolé, §4.3) — CONCIERGE est l'unique émetteur.
+5. Enregistrer les outils du projet comme serveurs MCP (**4 serveurs** : portail,
+   base de connaissances, base de données, **canaux** — détenu par Ayoub) — chaque
+   agent ne voit que les serveurs de son contrat (§4). **Tout envoi passe par le
+   serveur MCP `canaux`** (unique porte d'émission — ADR-001) ; aucun agent, ni
+   FastAPI, n'embarque de code d'envoi.
 6. Tenir le tableau ClickUp : tâches, sprints, statuts — pour toute l'équipe.
 
 **Livrables attendus.**
 - Graphe LangGraph fonctionnel avec routage testé (5 intentions minimum).
-- **3 serveurs MCP** enregistrés et documentés (README dans chaque sous-dossier) ;
+- **4 serveurs MCP** enregistrés et documentés (README dans chaque sous-dossier) ;
   l'enveloppe de `base-connaissances` enveloppe le moteur d'ingestion livré par Ouchen
-  (contrat `chercher` défini ensemble).
+  (contrat `chercher` défini ensemble) ; `canaux` est tenue par Ayoub (OTP WhatsApp +
+  Brevo, whitelists, aucune lecture base).
 - Agent Card JSON du RÉGISSEUR conforme au contrat (§4).
 - Tableau ClickUp à jour chaque semaine.
 
@@ -162,12 +164,13 @@ et l'API backend qui déclenche et expose les pipelines.
    `POST /prospects` (formulaire landing → file d'attente),
    `POST /admin/waitlist` (approbation HITL 1), `POST /onboarding`
    (confirmation profil + mot de passe via le lien 7 jours) —
-   **+ couche plateforme** (16 tables) : auth OTP (`/auth/otp`, `/auth/verify`),
+   **+ couche plateforme** (18 tables) : auth OTP (`/auth/otp`, `/auth/verify`),
    favoris (`/favoris`), notifications (`/notifications`), équipe & plan
    (`/equipe`, `/abonnement`).
 7. Le backend est le **point d'entrée unique** : le frontend ne parle jamais
-   directement à un agent. Le backend **ne parle jamais à WhatsApp/email** :
-   il déclenche CONCIERGE (nœud gabarit) qui est l'unique émetteur.
+   directement à un agent (A2A, synchrone). Le backend **n'embarque aucun code
+   d'envoi** ; toute émission passe par le serveur MCP `canaux` (ADR-001) :
+   le digest est distribué par COMPAGNON, les conversations par CONCIERGE.
 
 **Livrables attendus.**
 - Collecte sans erreur 429/403 sur 10 jours ouvrables ; zéro AO manquant sur échantillon.
@@ -245,7 +248,9 @@ production sans revue collective.
 
 ### 3.4 Ayoub Abdelmoughit — 💬 CONCIERGE · frontend dashboard
 
-**Périmètre.** La voix de Sou9na sur WhatsApp et l'interface web du client.
+**Périmètre.** La voix de Sou9na sur WhatsApp, FAQ / réponses via A2A, et
+**propriétaire du serveur MCP `canaux`** (émission sortante) — ainsi que
+l'interface web du client.
 
 **Responsabilités — agent CONCIERGE.**
 1. Conversation en **français, arabe et darija** ; détection de langue, réponse dans
@@ -257,10 +262,10 @@ production sans revue collective.
    escalade humaine. Jamais de conseil juridique formel, jamais de promesse.
 5. Modification de profil : **proposition seulement** — aucune écriture sans
    confirmation explicite du client (HITL).
-6. **Unique émetteur du système** : CONCIERGE envoie **tout** ce qui part vers un
-   client — invitation (lien 7 jours), bienvenue, digest du jour, réponses. Deux
-   nœuds internes : **gabarit** (sans LLM, déclenché par FastAPI ou le RÉGISSEUR)
-   et **conversation** (LLM). Module d'envoi isolé : WhatsApp Cloud API + Brevo.
+6. **Aucun code d'envoi embarqué** : toute émission sortante passe par le serveur
+   MCP **`canaux`** (tenu par lui) — WhatsApp Cloud API + Brevo. Deux
+   modes : **visiteur** (landing — FAQ générale citée, zéro donnée de compte) et
+   **client** (RLS `company_id`).
 7. **Deux modes de chatbot** : mode **visiteur** (landing — FAQ générale citée
    uniquement, données liées à `prospects`, aucun accès aux données de compte) et
    mode **client** (dashboard/WhatsApp/email — RLS `company_id`).
@@ -292,7 +297,8 @@ PV/prix, et la mesure de tout le reste.
 2. Explication du score visible partout (5 composantes + points perdus).
 3. Composition du digest FR/AR : top matchs + verdicts + risques + bandeau d'état —
    composé **après** le JUGE (7h30, en lisant `scores` + `verdicts`) puis **écrit en
-   base** ; la distribution 8h00 est faite par **CONCIERGE** (unique émetteur).
+   base** ; la distribution 8h00 est faite par **COMPAGNON via MCP `canaux`**
+   (ADR-001), jamais par CONCIERGE.
 4. Lectures **en batch** : tous les avis du jour + tous les profils actifs en 2 appels —
    jamais un appel par client.
 5. SLA : pipeline 6h00 → digest prêt avant 8h00 ; en cas d'incident, **digest
@@ -341,7 +347,7 @@ conforme aux 7 clauses suivantes :
 | 🔍 INSPECTEUR | Collecter, extraire, OCR, valider, stocker `tenders` | Contacter un client, modifier un profil, calculer un score, envoyer |
 | 🎯 COMPAGNON | Calculer Match /100, composer le digest (écrit en base) | Inventer un score non déterministe, décider un verdict, envoyer un message |
 | ⚖️ JUGE | Pré-check, verdict justifié, risques à vérifier | Engager le client, promettre un gain, contacter quiconque, envoyer |
-| 💬 CONCIERGE | Converser (FR/AR/darija), FAQ citée, proposer, **envoyer tout** (unique émetteur) | Répondre hors KB, modifier un profil sans confirmation, promettre |
+| 💬 CONCIERGE | Converser (FR/AR/darija), FAQ citée, proposer, **envoyer (via MCP `canaux`, gabarits uniquement)** | Répondre hors KB, modifier un profil sans confirmation, promettre |
 | 🛰️ SENTINELLE *(P2)* | Analyser PV/prix, surveiller la santé du portail | Agir sur la v1, déclencher des envois |
 
 ### 4.2 Les 3 règles transversales (aucune exception)
@@ -428,7 +434,7 @@ conforme aux 7 clauses suivantes :
   "points_perdus": [ "historique : 1 marché perdu (−4)" ] }
 ```
 
-**Test seul (déterminisme)** : même entrée exécutée 2 fois → score strictement identique ; jeu de 5 profils → 5 scores attendus exacts ; digest en sortie = top matchs + verdicts + bandeau d'état (FR **et** AR), **écrit en base** — la distribution 8h00 est faite par CONCIERGE (unique émetteur), jamais par COMPAGNON.
+**Test seul (déterminisme)** : même entrée exécutée 2 fois → score strictement identique ; jeu de 5 profils → 5 scores attendus exacts ; digest en sortie = top matchs + verdicts + bandeau d'état (FR **et** AR), **écrit en base** — la distribution 8h00 est faite par **COMPAGNON via MCP `canaux`** (ADR-001).
 
 #### ⚖️ JUGE (pré-check · verdict)
 
@@ -459,7 +465,7 @@ conforme aux 7 clauses suivantes :
   "remise_regisseur": false, "hitl": false }
 ```
 
-**Règles** : FAQ sans citation = rejet ; modification de profil → `remise_regisseur: false` mais **proposition seulement** (écriture après confirmation humaine) ; hors périmètre → `hitl: true` + réponse « je vérifie et je reviens vers vous » ; **CONCIERGE est l'unique émetteur** : nœud **gabarit** (sans LLM — invitation, bienvenue, digest, déclenché par FastAPI ou le RÉGISSEUR) et nœud **conversation** (LLM) ; canal en panne → canal ignoré, statut écrit, les autres continuent (runbook) ; **deux modes** : visiteur (landing — FAQ générale citée, zéro donnée de compte, lié à `prospects`) et client (RLS `company_id`).
+**Règles** : FAQ sans citation = rejet ; modification de profil → `remise_regisseur: false` mais **proposition seulement** (écriture après confirmation humaine) ; hors périmètre → `hitl: true` + réponse « je vérifie et je reviens vers vous » ; **aucun code d'envoi intégré** (ADR-001) : tout message sortant passe par le serveur MCP `canaux` — conversation/gabarits pour CONCIERGE, digest pour COMPAGNON ; canal en panne → canal ignoré, statut écrit, les autres continuent (runbook) ; **deux modes** : visiteur (landing — FAQ générale citée, zéro donnée de compte, lié à `prospects`) et client (RLS `company_id`).
 
 **Test seul** : 6 messages d'essai (FR · AR · darija · FAQ citable · changement de profil · question piège) → langue + intention + citation (ou escalade) attendus.
 
@@ -479,12 +485,13 @@ Seuil OAB : offre < 70 % du prix médian du secteur → alerte. V1 : aucune acti
 | `portail-marches` | `rechercher_avis(date)` | date ISO | liste de pages brutes (HTML/PDF) |
 | `base-connaissances` | `chercher(requete, corpus)` | texte + corpus cible | passages + métadonnées (document, article) |
 | `base-donnees` | `lire(table, filtres)` / `ecrire(table, lignes)` | table + filtres (RLS `company_id`) | lignes / compte d'écritures |
+| `canaux` *(Ayoub)* | `envoyer_whatsapp / envoyer_email / verifier_templates` | appelant + destinataire + gabarit + `ref` | `statut_envoi` · `message_id` · idempotence |
 
-> **Il n'y a pas de serveur MCP d'envoi.** L'envoi (WhatsApp Cloud API + Brevo) est un
-> **module interne isolé de CONCIERGE** (unique émetteur). Nœud gabarit sans LLM pour
-> les envois fixes ; nœud conversation (LLM) pour les réponses libres. Si un 2ᵉ
-> émetteur devient nécessaire (phase 2), ce module sera extrait en serveur MCP
-> sans réécrire les agents.
+> **Tout envoi passe par le serveur MCP `canaux`** (tenu par Ayoub) — aucun agent,
+> ni FastAPI, n'embarque de code d'envoi. Whitelists par appelant (COMPAGNON →
+> digest ; CONCIERGE → conversation/gabarits), gabarits pré-approuvés uniquement,
+> idempotence par `ref`, journalisation obligatoire dans `messages`.
+> Voir `11-documentation/v2.6/` (ADR-001).
 
 ### 4.4 Jeu de simulation autonome (scénarios T1–T7)
 
@@ -501,8 +508,8 @@ Seuil OAB : offre < 70 % du prix médian du secteur → alerte. V1 : aucune acti
 
 | # | Scénario (réf. BPMN) | Entrée injectée | Sortie attendue |
 |---|---|---|---|
-| **T1** | Inscription officielle (HITL 1) | landing : demande d'accès (email obligatoire · WhatsApp facultatif · honeypot · consentement) | FastAPI : `prospects` ✓ · HITL 1 : approbation admin · FastAPI : lien unique 7 jours · **CONCIERGE (nœud gabarit) : invitation envoyée sur email + WhatsApp** · client : profil + mot de passe · essai 14 jours actif · bienvenue sur les 2 canaux |
-| **T2** | Digest GO | cron 6h00 + A1 + profil complet | INSPECTEUR : A1 en base · COMPAGNON : Match 96 · JUGE : GO · COMPAGNON : digest composé (7h30) · **CONCIERGE : envoi 8h00 (mock des canaux)** |
+| **T1** | Inscription officielle (HITL 1) | landing : demande d'accès (email obligatoire · WhatsApp facultatif · honeypot · consentement) | FastAPI : `prospects` ✓ · HITL 1 : approbation admin · FastAPI : lien unique 7 jours · **CONCIERGE (via MCP `canaux`) : invitation envoyée sur email + WhatsApp** · client : profil + mot de passe · essai 14 jours actif · bienvenue sur les 2 canaux |
+| **T2** | Digest GO | cron 6h00 + A1 + profil complet | INSPECTEUR : A1 en base · COMPAGNON : Match 96 · JUGE : GO · COMPAGNON : digest composé (7h30) · **COMPAGNON : distribution 8h00 via MCP `canaux` (mock des canaux)** |
 | **T3** | Verdict À ÉTUDIER (HITL 2) | A2 | Match 81 · À ÉTUDIER · ≥ 3 risques listés · dashboard demande la décision humaine |
 | **T4** | Verdict NO-GO | A3 | NO-GO justifié (éliminatoire) · dossier écarté, jamais proposé |
 | **T5** | Panne portail (mode dégradé) | `source: "secours"` (portail_down = vrai) | INSPECTEUR : jeu de secours + état dégradé · digest **avec bandeau « service dégradé »**, tout de même livré avant 8h00 |
@@ -546,8 +553,9 @@ la fusion en CI/CD.
 
 ## 5 bis. Stratégie des branches Git (dépôt `github.com/hamza-ouchen/marchepublique`)
 
-> Dépôt officiel du projet. Créé le 17 nov. 2026 ; **14 branches en place** : 2
-> permanentes + 12 de domaine. Aucun push direct : tout passe par **Pull Request**.
+> Dépôt officiel du projet. Créé le 17 nov. 2026 ; **15 branches en place** : 2
+> permanentes + 13 de domaine (feat/canaux ajoutée le 18 nov. 2026). Aucun push
+> direct : tout passe par **Pull Request**.
 
 ### Les 2 branches permanentes
 
@@ -556,7 +564,7 @@ la fusion en CI/CD.
 | `main` | **Production** — code approuvé uniquement | 🚀 Production (données réelles) |
 | `develop` | **Intégration** — toutes les branches de domaine y convergent | 🧪 Test (données fictives) |
 
-### Les 12 branches de domaine (créées depuis `develop`)
+### Les 13 branches de domaine (créées depuis `develop`)
 
 | Branche | Membre | Contenu |
 |---|---|---|
@@ -568,9 +576,10 @@ la fusion en CI/CD.
 | `feat/rag` | ⚖️ Ouchen | moteur d'ingestion + golden set (enveloppe MCP chez Mhalli) |
 | `feat/securite` | 🔴🔵 Ouchen | équipe rouge (≥ 15 scénarios) + équipe bleue |
 | `feat/deploy` | 🚀 Ouchen | CI/CD, Render, secrets |
-| `feat/concierge` | 💬 Abdelmoughit | agent CONCIERGE (conversation + gabarit + envoi intégré) |
+| `feat/concierge` | 💬 Abdelmoughit | agent CONCIERGE (conversation + gabarits via MCP `canaux` — aucun envoi intégré) |
+| `feat/canaux` | 💬 Abdelmoughit | serveur MCP `canaux` (WhatsApp Cloud API + Brevo) — porte unique d'émission (ADR-001) |
 | `feat/frontend` | 💬 Abdelmoughit | dashboard Next.js + landing |
-| `feat/compagnon` | 🎯 Outlit | Match /100 + composition du digest |
+| `feat/compagnon` | 🎯 Outlit | Match /100 + digest composé (7h30) + distribution via MCP `canaux` (8h00) |
 | `feat/observabilite` | 🎯 Outlit | traces, tokens/coûts, alertes SLA |
 
 ### Le flux (aucune modification directe de `develop` ou `main`)
@@ -631,12 +640,17 @@ Sou9na-Projet/
 │
 ├── 02-backend/                      ← 👤 Hamza Midouni — API FastAPI
 │   ├── .env.example                     (webhook, cron, /run, /health)
-│   └── migrations/                      ← schéma SQL versionné : 001 schema (10 tables),
-│                                            002 données démo, 003 plateforme (6 tables),
-│                                            004 données démo plateforme — 16 tables, RLS
+│   ├── migrations/                      ← schéma SQL versionné : 001 schema (10 tables),
+│   │                                        002 données démo, 003 plateforme (6 tables),
+│   │                                        004 données démo plateforme,
+│   │                                        005 couche CPS (historique),
+│   │                                        006 réconciliation documents — 18 tables, RLS
+│   └── fixtures/cps/                    ← PDF synthétiques A1/A2/A3 + JSON attendus (tests)
 │
 ├── 03-agentic-ai/                   ← plateforme Agentic AI (moteur v1.7) — les agents
 │   ├── .env.example                      qui raisonnent et dialoguent
+│   ├── agent-cards/                   ← 🪪 cartes A2A (v1.0, 2026-11-18) :
+│   │                                       1/agent + index — registre pour le RÉGISSEUR
 │   ├── compagnon/                   ← 👤 Achraf Outlit — matching / digest
 │   ├── juge/                        ← 👤 Hamza Ouchen — verdict / éligibilité
 │   ├── concierge/                   ← 👤 Ayoub — conversation / FAQ RAG
@@ -649,12 +663,15 @@ Sou9na-Projet/
 │   ├── inspecteur/                  ← 👤 Hamza Midouni — extraction des données
 │   └── sentinelle/                  ← 👤 Achraf — veille PV/prix (phase 2)
 │
-├── 05-mcp-server/                   ← 👤 Hamza Mhalli — serveurs d'outils exposés
+├── 05-mcp-server/                   ← 👤 Hamza Mhalli (3) · 👤 Ayoub (`canaux`)
 │   ├── .env.example
-│   ├── portail-marches/             ← outil de collecte du portail national
-│   ├── base-connaissances/          ← accès à la base vectorielle (Astra)
-│   ├── base-donnees/                ← accès contrôlé à Postgres/Supabase
-│                                         (ex-`whatsapp/` supprimé en v3 : envoi intégré à CONCIERGE)
+│   ├── portail-marches/             ← outil de collecte du portail national (Mhalli)
+│   ├── base-connaissances/          ← base vectorielle Astra DB (collection unique `sou9na`)
+│   ├── base-donnees/                ← accès contrôlé à Postgres/Supabase (Mhalli)
+│   │                                         (ex-`whatsapp/` supprimé en v3 : envoi via `canaux`)
+│   └── canaux/                      ← 👤 Ayoub — émission sortante unique (v2.6, ADR-001)
+│                                             ├── client_whatsapp.py  (WhatsApp Cloud API)
+│                                             └── client_brevo.py     (Brevo v3 HTTPS)
 │
 ├── 06-connaissances/                ← 👤 Hamza Ouchen — RAG (naïf → hybride → agentic)
 │   ├── corpus/                      ← documents réglementaires versionnés
@@ -675,27 +692,36 @@ Sou9na-Projet/
 ├── 10-gestion-projet/               ← tableau ClickUp, sprints, comptes rendus
 │
 └── 11-documentation/                ← docs partagés : décisions, runbook, tutoriels
-    ├── Sou9na_Rapport_synthese_strategique.pdf  ← synthèse stratégique v2 (frameworks en § 3 bis)
-    ├── rapport-synthese-strategique.html        ← source du PDF
-    ├── bpmn-sou9na-projet.bpmn                  ← BPMN métier « La Régie » — modèle BPMN 2.0 (import Camunda / bpmn.io)
-    ├── bpmn-sou9na-projet.svg                   ← BPMN métier « La Régie » — source vectorielle (2 bassins, 3 points HITL)
-    ├── bpmn-sou9na-projet.png                   ← BPMN métier « La Régie » — rendu image (1560 × 1150)
-    ├── guide-entrees-sorties-simples.md         ← guide simple : agents (E/S), FastAPI, formulaire landing — 1 exemple par cas
-    ├── matrice-acces-mcp-outils-bdd.md          ← matrice : agents → serveurs MCP → outils → tables de la base (lues/écrites)
-    ├── agents-es-matrice-cas.html               ← document coloré v1 : agents (E/S) + matrice + cas d'usage (chacune sa couleur) — conservé
-    ├── agents-es-matrice-cas.pdf                ← version PDF du document coloré v1 (impression / diffusion)
-    ├── agents-es-matrice-cas-v2.html            ← document coloré v2 : + parcours d'inscription officiel (CAS 0), + « FastAPI ou agent ? » (§0) — conservé
-    ├── agents-es-matrice-cas-v2.pdf             ← version PDF du document coloré v2
-    ├── agents-es-matrice-cas-v3.html            ← document coloré v3 : + CONCIERGE unique émetteur (envoi intégré, 3 serveurs MCP), + chatbot visiteur/client, + RAG (qui construit quoi) — conservé
-    ├── agents-es-matrice-cas-v3.pdf             ← version PDF du document coloré v3
-    ├── agents-es-matrice-cas-v4.html            ← document coloré v4 : + couche plateforme (16 tables : utilisateurs, abonnements, OTP, favoris, notifications, admins)
-    └── agents-es-matrice-cas-v4.pdf             ← version PDF du document coloré v4``
+    ├── index.md                       ← 📖 index & ordre de lecture de TOUT le dossier
+    ├── v2.6/                          ← architecture EN VIGUEUR (ADR-001 — 18-11-2026) :
+    │   ├── index.md                       parcours de lecture (3 min)
+    │   ├── 01-architecture-canaux.md      décision d'architecture (ADR-001)
+    │   ├── 02-brief-ayoub-mcp-canaux.md   chantier d'Ayoub — construire MCP `canaux`
+    │   ├── 03-sorties-concierge.md        14 sorties possibles de CONCIERGE
+    │   ├── 04-api-fastapi-concierge.md    contrat FastAPI ⇄ CONCIERGE (A2A)
+    │   ├── 05-mission-ouchen-rag.md       brief Ouchen — ingestion RAG (réglementation + CPS)
+    │   └── 06-mission-midouni-cps.md      brief Midouni — capture CPS (Storage + tables)
+    ├── v4/                              ← doc coloré v4 — couche plateforme (16 tables)
+    │   ├── agents-es-matrice-cas-v4.html
+    │   └── agents-es-matrice-cas-v4.pdf
+    ├── v3/                              ← base documentaire v3 (référence)
+    │   ├── agents-es-matrice-cas-v3.html / .pdf
+    │   ├── matrice-acces-mcp-outils-bdd.md        (v3.1 — 16 tables)
+    │   ├── guide-entrees-sorties-simples.md       (le guide E/S agents · FastAPI · landing)
+    │   └── bpmn-sou9na-projet.bpmn / .svg / .png  (La Régie v2 — 3 points HITL)
+    ├── v2/                              ← doc coloré v2 + synthèse stratégique
+    │   ├── agents-es-matrice-cas-v2.html / .pdf
+    │   ├── rapport-synthese-strategique.html
+    │   └── Sou9na_Rapport_synthese_strategique.pdf
+    └── v1/                              ← landmark historique (ne pas modifier)
+        └── agents-es-matrice-cas.html / .pdf
 
 **Flux de données (résumé)** :
 `portail → 05-mcp-server/portail-marches → INSPECTEUR → base (02-backend) →
 COMPAGNON (Match /100, 6h20) → JUGE (verdict, 7h00) → COMPAGNON (digest composé,
-7h30) → CONCIERGE (unique émetteur, distribution 8h00) → WhatsApp/email/dashboard →
-CONCIERGE (FAQ) — le tout supervisé par RÉGISSEUR, tracé dans 08-observabilite,
+7h30) → COMPAGNON (distribution 8h00 via MCP `canaux`) → WhatsApp/email/dashboard →
+CONCIERGE (FAQ — réponses via MCP `canaux` pour WA/email, HTTP sync pour dashboard) —
+le tout supervisé par RÉGISSEUR, tracé dans 08-observabilite,
 attaqué/testé par 07-securite, déployé par 09-deploiement.`
 
 ---
@@ -741,3 +767,7 @@ tout élargissement des sources.
 | 2.3 | Nov. 2026 | **CONCIERGE unique émetteur** : envoi intégré dans l'agent (module isolé WhatsApp Cloud API + Brevo), suppression du serveur MCP d'envoi (3 serveurs MCP) ; parcours d'inscription officiel aligné sur le projet original (landing = file d'attente, email obligatoire / WhatsApp facultatif, approbation admin, lien 7 jours sur les 2 canaux, profil + mot de passe, essai 14 jours, canaux opt-in) ; chatbot visiteur/client ; répartition RAG (Ouchen : ingestion + golden set · Mhalli : enveloppe MCP) ; schéma base à 10 tables (`prospects`, `invitations`) ; **mode `backfill` d'INSPECTEUR au lancement** ; doc coloré v3 |
 | 2.4 | Nov. 2026 | Stratégie des branches Git (§ 5 bis) : dépôt `marchepublique` initialisé, 14 branches en place (2 permanentes + 12 de domaine), flux PR + règles de protection GitHub ; norme N1 alignée |
 | 2.5 | Nov. 2026 | **Couche plateforme (16 tables)** : migrations `003_plateforme.sql` + `004_donnees_demo_plateforme.sql` appliquées sur Supabase (`utilisateurs`, `abonnements`, `otp_codes`, `favoris`, `notifications`, `admins` — RLS par `company_id`) ; correction du schéma démo (`array[]::text[]`) ; endpoints backend plateforme ajoutés (§ 3.2) ; matrice d'accès v3.1 ; doc coloré v4 |
+| 2.6 | Nov. 2026 | **Architecture v2.6 — MCP `canaux` (ADR-001, `11-documentation/v2.6/`)** : **porte unique d'émission sortante** — aucun code d'envoi dans les agents ni FastAPI ; **rôles d'envoi inversés vs v3** : COMPAGNON distribue le digest à 8h00 via `canaux` (CONCIERGE : conversation/gabarits via `canaux`) ; dashboard = réponse HTTP **synchrone** (FastAPI ⇄ CONCIERGE en A2A) ; WhatsApp/email = `canaux` (gabarits whitelistés, idempotence par `ref`) ; branche `feat/canaux` ajoutée (13 branches de domaine, 15 branches totales) ; `11-documentation/` restructuré (v1…v4 archivées, `v2.6/` en vigueur, `index.md`) |
+| 2.6.1 | 19 nov. 2026 | **Documents CPS** : migration `005_cps.sql` appliquée sur Supabase (`cps_uploads`, `cps_sections` — RLS service_role, contraintes anti-échec-muet / anti-section-vide / anti-doublon) ; fixtures synthétiques A1/A2/A3 (`02-backend/fixtures/cps/`, générateur et vérificateur sans dépendance) ; briefs `05-mission-ouchen-rag.md` et `06-mission-midouni-cps.md` ; décision **collection Astra unique `sou9na`** avec filtre logique `type` |
+| 2.6.2 | 19 nov. 2026 | **Réconciliation documents** (`006_reconciliation_documents.sql`) : `tender_documents` (existante, 1 CPS réel préservé) devient le **référentiel unique** ; champs workflow ajoutés (`statut`, `echec_raison`, `sections`, `char_count`, `updated_at`) ; `cps_sections` rattachée à `tender_documents.id` ; `cps_uploads` (vide) supprimée ; docs et fixtures alignées |
+

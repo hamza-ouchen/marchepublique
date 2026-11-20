@@ -1,0 +1,34 @@
+{
+  "name": "INSPECTEUR",
+  "description": "Collecte quotidienne respectueuse du portail national des marchés publics (≈ 135 avis/jour) : extraction structurée et stockage idempotent dans tenders. SEUL agent autorisé à appeler le portail.",
+  "url": "http://localhost:8101",
+  "version": "1.0.0",
+  "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
+  "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },
+  "securitySchemes": {
+    "internal-token": { "type": "apiKey", "in": "header", "name": "X-Internal-Token" }
+  },
+  "security": [{ "internal-token": [] }],
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "collecte_avis",
+      "name": "Collecte et extraction des avis",
+      "description": "Appelle le portail une seule fois par run (jamais sur demande client), normalise chaque avis (référence, organisme, objet, montant, cautions, lots, qualifications, délai, dates), applique les règles de plausibilité, stocke sans doublon (clé : reference).",
+      "tags": ["collecte", "portail", "backfill", "secours", "ocr", "ingestion"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "mode": "cron", "date": "2026-11-17" } }] },
+        { "role": "user", "parts": [{ "kind": "data", "data": { "mode": "backfill", "date": "2026-11-17" } }] }
+      ]
+    }
+  ],
+  "x_sou9na": {
+    "proprietaire": "Hamza Midouni",
+    "dossier": "04-langgraph/inspecteur/",
+    "entrees": { "data": { "mode": "portail|secours|backfill", "date": "ISO-8601 (YYYY-MM-DD)" } },
+    "sorties": { "avis_nouveaux": "int", "doublons": "int", "rejetes": "int", "source": "portail|secours|backfill" },
+    "appelant_autorise": "RÉGISSEUR",
+    "memoire": "tenders (via MCP base-donnees · appeler avec appelant=INSPECTEUR)"
+  }
+}

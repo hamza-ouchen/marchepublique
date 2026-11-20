@@ -1,0 +1,59 @@
+{
+  "name": "COMPAGNON",
+  "description": "Calcule le Match /100 de manière déterministe (zéro LLM) chaque matin en batch, puis compose le digest FR + AR (7h30) en lisant scores et verdicts. N'envoie JAMAIS.",
+  "url": "http://localhost:8102",
+  "version": "1.0.0",
+  "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
+  "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },
+  "securitySchemes": {
+    "internal-token": { "type": "apiKey", "in": "header", "name": "X-Internal-Token" }
+  },
+  "security": [{ "internal-token": [] }],
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "calculer_match",
+      "name": "Calcul du Match /100",
+      "description": "Calcule le Match /100 pour tous les couples (entreprise, avis du jour) : secteur 35 · région 20 · capacité 20 · qualifications 15 · historique 10. Écrit scores (algo_version). Batch uniquement — zéro LLM.",
+      "tags": ["matching", "score", "batch", "deterministe"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "date": "2026-11-17" } }] }
+      ]
+    },
+    {
+      "id": "composer_digest",
+      "name": "Composition du digest",
+      "description": "Compose le digest FR + AR par entreprise en lisant les scores et les verdicts du jour (2e passage). Écrit digests avec un bandeau d'état. Le digest est ensuite distribué via MCP canaux.",
+      "tags": ["digest", "composition", "fr", "ar"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "date": "2026-11-17" } }] }
+      ]
+    },
+    {
+      "id": "distribuer_digests",
+      "name": "Distribution des digests (via MCP canaux)",
+      "description": "Distribue les digests du jour aux canaux opt-in de chaque client — en appelant le serveur MCP canaux (envoyer_whatsapp / envoyer_email). Écrit digests.statut_envoi et messages via MCP base-donnees.",
+      "tags": ["distribution", "digest", "whatsapp", "email", "canaux"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "date": "2026-11-17" } }] }
+      ]
+    }
+  ],
+  "x_sou9na": {
+    "proprietaire": "Achraf Outlit",
+    "dossier": "03-agentic-ai/compagnon/",
+    "entrees": {
+      "calculer_match": { "data": { "date": "ISO-8601 (YYYY-MM-DD)" } },
+      "composer_digest": { "data": { "date": "ISO-8601 (YYYY-MM-DD)" } },
+      "distribuer_digests": { "data": { "date": "ISO-8601 (YYYY-MM-DD)" } }
+    },
+    "sorties": {
+      "calculer_match": { "scores_ecrits": "int", "algo_version": "string" },
+      "composer_digest": { "digests_composes": "int", "bandeau": "string" },
+      "distribuer_digests": { "envois_whatsapp": "int", "envois_email": "int", "echecs": "int", "hitl_declenches": "int" }
+    },
+    "appelant_autorise": "RÉGISSEUR",
+    "memoire": "scores · digests · messages (via MCP base-donnees · appelant=COMPAGNON) · envois via MCP canaux"
+  }
+}
