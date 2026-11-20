@@ -46,6 +46,7 @@ export const DICTIONARY: Record<string, Record<Lang, string>> = {
   "nav.clients": { fr: "Clients (TPME)", ar: "العملاء (المقاولات)" },
   "nav.history": { fr: "Historique", ar: "السجل" },
   "nav.profile": { fr: "Mon profil", ar: "ملفي الشخصي" },
+  "nav.dossiers": { fr: "Dossiers", ar: "الملفات" },
 
   // Landing
   "landing.badge": {
@@ -136,6 +137,46 @@ export const DICTIONARY: Record<string, Record<Lang, string>> = {
   "profile.notEditable": { fr: "Identifiant de connexion — non modifiable", ar: "رقم تسجيل الدخول — غير قابل للتعديل" },
   "profile.save": { fr: "Enregistrer", ar: "حفظ" },
   "profile.saved": { fr: "Enregistre", ar: "تم الحفظ" },
+
+  "dossiers.title": { fr: "Dossiers", ar: "الملفات" },
+  "dossiers.subtitle": {
+    fr: "Appels d'offres correspondant a votre profil, tries par Match decroissant.",
+    ar: "طلبات العروض المطابقة لملفك، مرتبة حسب نسبة التوافق تنازليا.",
+  },
+  "dossiers.filter.sector": { fr: "Secteur", ar: "القطاع" },
+  "dossiers.filter.region": { fr: "Region", ar: "الجهة" },
+  "dossiers.filter.verdict": { fr: "Verdict", ar: "القرار" },
+  "dossiers.filter.all": { fr: "Tous", ar: "الكل" },
+  "dossiers.filter.minAmount": { fr: "Montant min. (MAD)", ar: "الحد الأدنى للمبلغ (درهم)" },
+  "dossiers.match": { fr: "Match", ar: "التوافق" },
+  "dossiers.deadline": { fr: "Remise", ar: "آخر أجل" },
+  "dossiers.amount": { fr: "Montant", ar: "المبلغ" },
+  "dossiers.empty": { fr: "Aucun dossier ne correspond a ces filtres.", ar: "لا يوجد ملف يطابق هذه المرشحات." },
+  "dossiers.viewDetail": { fr: "Voir la fiche", ar: "عرض الملف" },
+  "dossiers.favoriAdd": { fr: "Ajouter aux favoris", ar: "إضافة إلى المفضلة" },
+  "dossiers.favoriRemove": { fr: "Retirer des favoris", ar: "إزالة من المفضلة" },
+
+  "dossier.back": { fr: "Retour aux dossiers", ar: "الرجوع إلى الملفات" },
+  "dossier.scoreDetail": { fr: "Detail du score", ar: "تفاصيل النقاط" },
+  "dossier.pointsLost": { fr: "Points perdus", ar: "النقاط المفقودة" },
+  "dossier.controls": { fr: "Controles d'eligibilite", ar: "فحوصات الأهلية" },
+  "dossier.risks": { fr: "Risques a verifier", ar: "مخاطر للتحقق منها" },
+  "dossier.sources": { fr: "Sources / justifications", ar: "المصادر / التبريرات" },
+  "dossier.caution": { fr: "Caution", ar: "الضمان" },
+  "dossier.delay": { fr: "Delai", ar: "الأجل" },
+  "dossier.publication": { fr: "Publication", ar: "النشر" },
+  "dossier.remise": { fr: "Remise des offres", ar: "تسليم العروض" },
+  "dossier.qualifications": { fr: "Qualifications exigees", ar: "التأهيلات المطلوبة" },
+  "dossier.status": { fr: "Statut", ar: "الحالة" },
+  "dossier.noRisk": { fr: "Aucun risque identifie.", ar: "لا توجد مخاطر محددة." },
+
+  "controle.caution_vs_capacite": { fr: "Caution vs capacite financiere", ar: "الضمان مقابل القدرة المالية" },
+  "controle.ice_attestations": { fr: "ICE et attestations", ar: "ICE والشهادات" },
+  "controle.qualifications": { fr: "Qualifications exigees", ar: "التأهيلات المطلوبة" },
+  "controle.delai_atteignable": { fr: "Delai atteignable", ar: "الأجل القابل للتحقيق" },
+  "controle.ok": { fr: "OK", ar: "جيد" },
+  "controle.risque": { fr: "Risque", ar: "خطر" },
+  "controle.ko": { fr: "Eliminatoire", ar: "إقصائي" },
 };
 
 interface LanguageContextValue {

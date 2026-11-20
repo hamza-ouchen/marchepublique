@@ -58,3 +58,56 @@ export interface StatPoint {
   label: string;
   value: number;
 }
+
+// ---------------------------------------------------------------------------
+// Dossier (avis de marche + Match /100 + verdict) — schema aligne sur
+// SOU9NA-REF-001 §4.3 (contrats E/S INSPECTEUR / COMPAGNON / JUGE).
+// ---------------------------------------------------------------------------
+
+export type Verdict = "GO" | "A_ETUDIER" | "NO_GO";
+export type Controle = "ok" | "risque" | "ko";
+export type StatutDossier = "a_etudier" | "envoye" | "gagne" | "perdu";
+
+export interface MatchComposantes {
+  secteur: number;
+  region: number;
+  capacite: number;
+  qualifications: number;
+  historique: number;
+}
+
+export interface Justification {
+  constat: string;
+  reference: string;
+}
+
+export interface Dossier {
+  reference: string;
+  organisme: string;
+  objet: string;
+  secteur: string;
+  region: string;
+  montantMad: number;
+  cautionMad: number;
+  qualificationsExigees: string[];
+  delaiJours: number;
+  datePublication: string;
+  dateRemise: string;
+  match: {
+    total: number;
+    algoVersion: string;
+    composantes: MatchComposantes;
+    pointsPerdus: string[];
+  };
+  verdict: Verdict;
+  controles: {
+    cautionVsCapacite: Controle;
+    iceAttestations: Controle;
+    qualifications: Controle;
+    delaiAtteignable: Controle;
+  };
+  justifications: Justification[];
+  risquesAVerifier: string[];
+  statut: StatutDossier;
+  favori: boolean;
+}

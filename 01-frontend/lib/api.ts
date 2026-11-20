@@ -24,8 +24,9 @@ import {
   weeklyVolume,
   clientsTable,
   userHistorique,
+  mockDossiers,
 } from "./mock-data";
-import { Conversation, StatPoint } from "./types";
+import { Conversation, Dossier, StatPoint } from "./types";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? null;
 
@@ -133,4 +134,30 @@ export function getUserHistorique(): Conversation[] {
   // TODO(backend): remplacer par un fetch(`${API_BASE_URL}/me/historique`)
   // avec le token/session du TPME connecte.
   return userHistorique;
+}
+
+// GET /me/dossiers — dossiers (avis + Match + verdict) du TPME connecte.
+// Schema aligne sur SOU9NA-REF-001 §4.3 (COMPAGNON + JUGE). Mutations locales
+// (favori/statut) sont gardees en memoire ici tant que le backend n'expose
+// pas PATCH /me/dossiers/:reference.
+let dossiersState: Dossier[] = mockDossiers;
+
+export function getDossiers(): Dossier[] {
+  // TODO(backend): remplacer par un fetch(`${API_BASE_URL}/me/dossiers`)
+  return dossiersState;
+}
+
+export function getDossier(reference: string): Dossier | undefined {
+  // TODO(backend): remplacer par un fetch(`${API_BASE_URL}/me/dossiers/${reference}`)
+  return dossiersState.find((d) => d.reference === reference);
+}
+
+export function setDossierFavori(reference: string, favori: boolean): void {
+  // TODO(backend): remplacer par un PATCH `${API_BASE_URL}/me/dossiers/${reference}`
+  dossiersState = dossiersState.map((d) => (d.reference === reference ? { ...d, favori } : d));
+}
+
+export function setDossierStatut(reference: string, statut: Dossier["statut"]): void {
+  // TODO(backend): remplacer par un PATCH `${API_BASE_URL}/me/dossiers/${reference}`
+  dossiersState = dossiersState.map((d) => (d.reference === reference ? { ...d, statut } : d));
 }

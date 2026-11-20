@@ -1,4 +1,4 @@
-import { Conversation, StatPoint } from "./types";
+import { Conversation, Dossier, StatPoint } from "./types";
 
 // Donnees de demonstration pour le prototype frontend.
 // Remplacer par de vrais appels API des que le backend (Hamza Midouni) est branche.
@@ -69,6 +69,131 @@ export const clientsTable = [
   { id: "t2", entreprise: "Benali Construction", ice: "0098765432", contact: "Sanaa Benali", secteur: "BTP / Travaux publics", region: "Casablanca-Settat", statut: "Actif", depuis: "Sep 2026" },
   { id: "t3", entreprise: "Idrissi Electromenager", ice: "0055512345", contact: "Karim Idrissi", secteur: "Electromenager / Electronique", region: "Rabat-Sale-Kenitra", statut: "En attente", depuis: "Nov 2026" },
   { id: "t4", entreprise: "Chraibi Textile", ice: "0077788899", contact: "Nadia Chraibi", secteur: "Textile / Confection", region: "Fes-Meknes", statut: "Actif", depuis: "Aout 2026" },
+];
+
+// Fixtures T1-T4 du jeu de simulation (SOU9NA-REF-001 §4.4) — profil d'essai
+// "Maroc Metaux SARL" (secteur BTP, region Casablanca-Settat).
+export const mockDossiers: Dossier[] = [
+  {
+    reference: "2026/DTR/0123",
+    organisme: "Commune de Sidi X",
+    objet: "Travaux de rehabilitation",
+    secteur: "BTP / Travaux publics",
+    region: "Casablanca-Settat",
+    montantMad: 1500000,
+    cautionMad: 45000,
+    qualificationsExigees: ["Categorie C"],
+    delaiJours: 120,
+    datePublication: "2026-11-17",
+    dateRemise: "2026-12-01",
+    match: {
+      total: 96,
+      algoVersion: "1.0.0",
+      composantes: { secteur: 35, region: 20, capacite: 20, qualifications: 15, historique: 6 },
+      pointsPerdus: ["Historique : 1 marche perdu (-4)"],
+    },
+    verdict: "GO",
+    controles: { cautionVsCapacite: "ok", iceAttestations: "ok", qualifications: "ok", delaiAtteignable: "ok" },
+    justifications: [
+      { constat: "Caution (45 000 MAD) largement couverte par la capacite financiere.", reference: "decret 2-22-431, art. 18" },
+      { constat: "Qualification categorie C detenue et conforme a l'exigence.", reference: "decret 2-22-431, art. 24" },
+    ],
+    risquesAVerifier: [],
+    statut: "a_etudier",
+    favori: false,
+  },
+  {
+    reference: "2026/DTR/0145",
+    organisme: "Province de Beni Mellal",
+    objet: "Construction d'un centre de sante",
+    secteur: "BTP / Travaux publics",
+    region: "Beni Mellal-Khenifra",
+    montantMad: 2200000,
+    cautionMad: 66000,
+    qualificationsExigees: ["Categorie C", "Certification ISO 9001"],
+    delaiJours: 180,
+    datePublication: "2026-11-10",
+    dateRemise: "2026-12-05",
+    match: {
+      total: 81,
+      algoVersion: "1.0.0",
+      composantes: { secteur: 35, region: 20, capacite: 20, qualifications: 0, historique: 6 },
+      pointsPerdus: ["Qualifications : certification ISO 9001 non detenue (-15)"],
+    },
+    verdict: "A_ETUDIER",
+    controles: { cautionVsCapacite: "ok", iceAttestations: "ok", qualifications: "risque", delaiAtteignable: "ok" },
+    justifications: [
+      { constat: "Certification ISO 9001 exigee mais non confirmee au dossier.", reference: "decret 2-22-431, art. 24" },
+    ],
+    risquesAVerifier: [
+      "Obtenir la certification ISO 9001 avant le depot (ou lettre d'engagement).",
+      "Verifier le delai d'obtention auprès de l'organisme certificateur.",
+      "Confirmer qu'aucune autre qualification cachee n'est exigee dans le CPS complet.",
+    ],
+    statut: "a_etudier",
+    favori: true,
+  },
+  {
+    reference: "2026/DTR/0099",
+    organisme: "Agence Urbaine de Casablanca",
+    objet: "Extension du reseau d'assainissement",
+    secteur: "BTP / Travaux publics",
+    region: "Casablanca-Settat",
+    montantMad: 50000000,
+    cautionMad: 1500000,
+    qualificationsExigees: ["Categorie A"],
+    delaiJours: 365,
+    datePublication: "2026-11-05",
+    dateRemise: "2026-11-30",
+    match: {
+      total: 58,
+      algoVersion: "1.0.0",
+      composantes: { secteur: 35, region: 20, capacite: 0, qualifications: 0, historique: 3 },
+      pointsPerdus: [
+        "Capacite : montant (50 000 000 MAD) depasse largement la capacite financiere (-20)",
+        "Qualifications : categorie A non detenue (-15)",
+      ],
+    },
+    verdict: "NO_GO",
+    controles: { cautionVsCapacite: "ko", iceAttestations: "ok", qualifications: "ko", delaiAtteignable: "ok" },
+    justifications: [
+      { constat: "Montant du marche (50M MAD) largement superieur a la capacite financiere declaree (3M MAD).", reference: "decret 2-22-431, art. 18" },
+    ],
+    risquesAVerifier: [],
+    statut: "a_etudier",
+    favori: false,
+  },
+  {
+    reference: "2026/DTR/0210",
+    organisme: "Office National de l'Electricite (ONEE)",
+    objet: "Fourniture de materiel electromenager pour sites",
+    secteur: "Electromenager / Electronique",
+    region: "Rabat-Sale-Kenitra",
+    montantMad: 800000,
+    cautionMad: 24000,
+    qualificationsExigees: ["Agrement fournisseur"],
+    delaiJours: 60,
+    datePublication: "2026-11-15",
+    dateRemise: "2026-11-28",
+    match: {
+      total: 42,
+      algoVersion: "1.0.0",
+      composantes: { secteur: 0, region: 8, capacite: 20, qualifications: 10, historique: 4 },
+      pointsPerdus: ["Secteur : hors secteur d'activite declare (-35)", "Region : hors region principale (-12)"],
+    },
+    verdict: "A_ETUDIER",
+    controles: { cautionVsCapacite: "ok", iceAttestations: "ok", qualifications: "risque", delaiAtteignable: "risque" },
+    justifications: [
+      { constat: "Agrement fournisseur non confirme au dossier.", reference: "decret 2-22-431, art. 24" },
+    ],
+    risquesAVerifier: [
+      "Confirmer la validite de l'agrement fournisseur ONEE.",
+      "Verifier la faisabilite du delai de 60 jours pour la fourniture.",
+      "Evaluer l'interet reel hors secteur principal avant depot.",
+    ],
+    statut: "envoye",
+    favori: false,
+  },
 ];
 
 export const userHistorique: Conversation[] = [
