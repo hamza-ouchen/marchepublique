@@ -1,0 +1,53 @@
+{
+  "cas": "A2 — CPS + addenda (multi-documents)",
+  "reference": "2026/DTR/0124",
+  "document_name": "cps.pdf",
+  "storage_path": "2026/2026-DTR-0124/cps.pdf",
+  "pdf": "2026-DTR-0124/cps.pdf",
+  "extraction": "texte",
+  "source_verite_terrain": "sources/2026-DTR-0124-cps.txt",
+  "sections": [
+    {
+      "section_no": 1,
+      "numero": "1",
+      "titre": "Objet du marché",
+      "debut": "Le présent marché a pour objet la fourniture et la pose de menuiseries aluminium",
+      "longueur": 137
+    },
+    {
+      "section_no": 2,
+      "numero": "2.1",
+      "titre": "Profilés et vitrages",
+      "debut": "Les profilés aluminium doivent être de série 55 mm minimum, avec rupture de pont",
+      "longueur": 259
+    },
+    {
+      "section_no": 3,
+      "numero": "2.2",
+      "titre": "Mise en oeuvre",
+      "debut": "La pose est réalisée par une équipe qualifiée, avec calage, étanchéité et bavett",
+      "longueur": 195
+    },
+    {
+      "section_no": 4,
+      "numero": "3",
+      "titre": "Qualifications exigées",
+      "debut": "Le soumissionnaire doit être certifié ISO 9001 pour son système de management de",
+      "longueur": 326
+    },
+    {
+      "section_no": 5,
+      "numero": "4",
+      "titre": "Délais",
+      "debut": "Le délai de livraison et de pose est fixé à 150 jours calendaires après notifica",
+      "longueur": 225
+    },
+    {
+      "section_no": 6,
+      "numero": "5",
+      "titre": "Pénalités et réception",
+      "debut": "Le retard imputable au titulaire entraîne une pénalité de 1/1000 du montant du m",
+      "longueur": 237
+    }
+  ]
+}

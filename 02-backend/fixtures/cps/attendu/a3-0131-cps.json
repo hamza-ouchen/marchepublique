@@ -1,0 +1,10 @@
+{
+  "cas": "A3 — PDF sans couche texte (branche OCR)",
+  "reference": "2026/DTR/0131",
+  "document_name": "cps.pdf",
+  "storage_path": "2026/2026-DTR-0131/cps.pdf",
+  "pdf": "2026-DTR-0131/cps.pdf",
+  "extraction": "ocr_requis",
+  "source_verite_terrain": "sources/2026-DTR-0131-cps.txt",
+  "sections": []
+}

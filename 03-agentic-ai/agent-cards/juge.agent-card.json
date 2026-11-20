@@ -1,0 +1,33 @@
+{
+  "name": "JUGE",
+  "description": "Rend un verdict GO / À ÉTUDIER / NO-GO sur les offres au-dessus du seuil (~75) uniquement — jamais sur les 132 avis. Match ≠ verdict (un 96 peut être NO-GO). Justifications citées (LLM + base-connaissances).",
+  "url": "http://localhost:8103",
+  "version": "1.0.0",
+  "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
+  "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },
+  "securitySchemes": {
+    "internal-token": { "type": "apiKey", "in": "header", "name": "X-Internal-Token" }
+  },
+  "security": [{ "internal-token": [] }],
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "statuer",
+      "name": "Verdict pré-éligibilité",
+      "description": "Lit les scores au-dessus du seuil, applique les 4 contrôles (caution vs capacité · ICE/attestations · qualifications · délai atteignable), justifie chaque verdict par des citations (chercher base-connaissances), consigne ≥ 3 risques pour A_ETUDIER.",
+      "tags": ["verdict", "eligibilite", "go", "no-go", "rag"],
+      "examples": [
+        { "role": "user", "parts": [{ "kind": "data", "data": { "date": "2026-11-17", "seuil": 75 } }] }
+      ]
+    }
+  ],
+  "x_sou9na": {
+    "proprietaire": "Hamza Ouchen",
+    "dossier": "03-agentic-ai/juge/",
+    "entrees": { "data": { "date": "ISO-8601 (YYYY-MM-DD)", "seuil": 75 } },
+    "sorties": { "verdicts_ecrits": "int", "go": "int", "a_etudier": "int", "no_go": "int", "seuil": 75 },
+    "appelant_autorise": "RÉGISSEUR",
+    "memoire": "verdicts (via MCP base-donnees · appelant=JUGE)"
+  }
+}
