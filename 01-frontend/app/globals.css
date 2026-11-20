@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface: 255 255 255;
+    --sand-50: 251 249 245;
+    --sand-100: 245 239 227;
+    --sand-200: 233 221 196;
+    --sand-300: 215 197 160;
+    --sand-400: 185 164 118;
+    --sand-500: 143 122 82;
+    --sand-900: 58 49 35;
+    --brand-50: 238 249 243;
+    --brand-100: 215 241 226;
+  }
+  .dark {
+    --surface: 32 27 19;
+    --sand-50: 20 17 12;
+    --sand-100: 36 30 21;
+    --sand-200: 58 49 36;
+    --sand-300: 90 78 58;
+    --sand-400: 150 134 104;
+    --sand-500: 196 182 156;
+    --sand-900: 243 237 225;
+    --brand-50: 27 46 38;
+    --brand-100: 32 58 48;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-sand-50 text-sand-900 transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgb(0_0_0/0.06),0_8px_16px_-6px_rgb(31_118_85/0.45)] transition-all hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-[0_2px_4px_rgb(0_0_0/0.08),0_12px_20px_-6px_rgb(31_118_85/0.5)] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-sand-200 bg-surface px-5 py-2.5 text-sm font-semibold text-sand-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sand-300 hover:bg-sand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+  }
+  .input-field {
+    @apply w-full rounded-xl border border-sand-200 bg-surface px-3.5 py-2.5 text-sm text-sand-900 placeholder:text-sand-900/40 shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+  }
+  .card {
+    @apply rounded-2xl border border-sand-200/80 bg-surface shadow-card;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-wide;
+  }
+  .badge-dot::before {
+    content: "";
+    @apply h-1.5 w-1.5 rounded-full bg-current;
+  }
+}
