@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, roleHome } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { Field } from "@/components/Field";
 import { HeroIllustration } from "@/components/HeroIllustration";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { LogIn, AlertCircle, Building2, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 
@@ -15,6 +17,7 @@ type Space = "user" | "admin";
 
 export default function LoginPage() {
   const { login, logout } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [space, setSpace] = useState<Space>("user");
   const [email, setEmail] = useState("");
@@ -30,21 +33,19 @@ export default function LoginPage() {
     const result = login(email, password);
     setLoading(false);
     if (!result.ok) {
-      setError(result.error ?? "Erreur de connexion.");
+      setError(result.error ?? t("login.error.default"));
       return;
     }
     const raw = window.localStorage.getItem("sou9na_session");
     const connectedUser = raw ? JSON.parse(raw) : null;
     if (!connectedUser) {
-      setError("Erreur de connexion.");
+      setError(t("login.error.default"));
       return;
     }
     if (connectedUser.role !== space) {
       logout();
       setError(
-        isAdminSpace
-          ? "Ce compte n'est pas un compte Admin. Choisissez l'espace TPME."
-          : "Ce compte est un compte Admin. Choisissez l'espace Admin."
+        isAdminSpace ? t("login.error.notAdmin") : t("login.error.notUser")
       );
       return;
     }
@@ -57,13 +58,16 @@ export default function LoginPage() {
       <div className="flex w-full flex-col justify-center px-8 py-12 sm:px-16 lg:w-1/2 lg:px-24">
         <div className="mb-10 flex items-center justify-between">
           <Logo />
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-sand-900">
-          Connexion
+          {t("login.title")}
         </h1>
         <p className="mt-2 text-sm text-sand-900/60">
-          Choisissez votre espace puis connectez-vous.
+          {t("login.subtitle")}
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-sand-100 p-1">
@@ -81,7 +85,7 @@ export default function LoginPage() {
             )}
           >
             <Building2 className="h-4 w-4" />
-            Espace TPME
+            {t("common.spaceUser")}
           </button>
           <button
             type="button"
@@ -97,7 +101,7 @@ export default function LoginPage() {
             )}
           >
             <ShieldCheck className="h-4 w-4" />
-            Espace Admin
+            {t("common.spaceAdmin")}
           </button>
         </div>
 
@@ -108,7 +112,7 @@ export default function LoginPage() {
               {error}
             </div>
           )}
-          <Field label="Email">
+          <Field label={t("common.email")}>
             <input
               type="email"
               name="login-email"
@@ -120,7 +124,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </Field>
-          <Field label="Mot de passe">
+          <Field label={t("common.password")}>
             <input
               type="password"
               name="login-password"
@@ -141,14 +145,14 @@ export default function LoginPage() {
             )}
           >
             <LogIn className="h-4 w-4" />
-            Se connecter
+            {t("common.login")}
           </button>
         </form>
 
         <p className="mt-6 text-sm text-sand-900/60">
-          Pas encore de compte ?{" "}
+          {t("login.noAccount")}{" "}
           <Link href="/signup" className="font-medium text-brand-700 hover:underline">
-            Creer un compte
+            {t("common.signup")}
           </Link>
         </p>
       </div>
@@ -156,18 +160,17 @@ export default function LoginPage() {
       {/* Panneau droit — illustration */}
       <div className="relative hidden w-1/2 overflow-hidden bg-brand-900 lg:block">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-700 via-brand-800 to-brand-950" />
-        <div className="absolute -right-24 -top-32 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" />
-        <div className="absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-brand-400/10 blur-3xl" />
+        <div className="absolute -end-24 -top-32 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" />
+        <div className="absolute -bottom-20 -start-10 h-64 w-64 rounded-full bg-brand-400/10 blur-3xl" />
         <div className="relative flex h-full flex-col justify-center px-16">
           <span className="badge badge-dot w-fit border border-white/15 bg-white/10 text-white/90">
-            Plateforme marches publics
+            {t("login.panel.badge")}
           </span>
           <h2 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight text-white drop-shadow-sm">
-            L&apos;assistant IA pour vos marches publics
+            {t("login.panel.title")}
           </h2>
           <p className="mt-4 max-w-md text-white/70">
-            Sou9na accompagne les TPME marocaines sur WhatsApp : questions,
-            suivi de dossiers, et confirmation humaine a chaque etape sensible.
+            {t("login.panel.text")}
           </p>
           <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur-sm">
             <HeroIllustration />

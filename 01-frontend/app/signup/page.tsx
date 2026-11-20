@@ -4,14 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { Field } from "@/components/Field";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { SECTEURS, REGIONS } from "@/lib/types";
 import { UserPlus, AlertCircle } from "lucide-react";
 
 export default function SignupPage() {
   const { signup } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [form, setForm] = useState({
     nom: "",
@@ -48,18 +51,21 @@ export default function SignupPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-sand-50 px-6 py-12">
-      <ThemeToggle className="absolute right-6 top-6" />
+      <div className="absolute end-6 top-6 flex items-center gap-2">
+        <LanguageToggle />
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-lg">
         <Logo className="mb-8 justify-center" />
         <div className="card p-8 sm:p-10">
           <span className="badge badge-dot border border-brand-100 bg-brand-50 text-brand-700">
-            Inscription TPME
+            {t("signup.badge")}
           </span>
           <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-sand-900">
-            Creer votre compte TPME
+            {t("signup.title")}
           </h1>
           <p className="mt-1.5 text-sm text-sand-900/60">
-            Quelques informations pour commencer avec Sou9na.
+            {t("signup.subtitle")}
           </p>
 
           <form onSubmit={handleSubmit} autoComplete="off" className="mt-6 space-y-4">
@@ -70,7 +76,7 @@ export default function SignupPage() {
               </div>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Nom complet">
+              <Field label={t("signup.fullName")}>
                 <input
                   required
                   className="input-field"
@@ -79,7 +85,7 @@ export default function SignupPage() {
                   onChange={update("nom")}
                 />
               </Field>
-              <Field label="Telephone">
+              <Field label={t("signup.phone")}>
                 <input
                   className="input-field"
                   placeholder="06 00 00 00 00"
@@ -88,7 +94,7 @@ export default function SignupPage() {
                 />
               </Field>
             </div>
-            <Field label="Entreprise">
+            <Field label={t("signup.company")}>
               <input
                 required
                 className="input-field"
@@ -97,7 +103,7 @@ export default function SignupPage() {
                 onChange={update("entreprise")}
               />
             </Field>
-            <Field label="ICE" hint="Identifiant Commun de l'Entreprise (optionnel)">
+            <Field label="ICE" hint={t("signup.iceHint")}>
               <input
                 className="input-field"
                 placeholder="0012345678"
@@ -107,13 +113,13 @@ export default function SignupPage() {
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Secteur d'activite">
+              <Field label={t("signup.sector")}>
                 <select
                   className="input-field"
                   value={form.secteurActivite}
                   onChange={update("secteurActivite")}
                 >
-                  <option value="">Selectionner...</option>
+                  <option value="">{t("common.select")}</option>
                   {SECTEURS.map((s) => (
                     <option key={s} value={s}>
                       {s}
@@ -121,13 +127,13 @@ export default function SignupPage() {
                   ))}
                 </select>
               </Field>
-              <Field label="Region">
+              <Field label={t("signup.region")}>
                 <select
                   className="input-field"
                   value={form.region}
                   onChange={update("region")}
                 >
-                  <option value="">Selectionner...</option>
+                  <option value="">{t("common.select")}</option>
                   {REGIONS.map((r) => (
                     <option key={r} value={r}>
                       {r}
@@ -138,8 +144,8 @@ export default function SignupPage() {
             </div>
 
             <Field
-              label="Qualifications / certifications"
-              hint="Optionnel — utile pour verifier l'eligibilite a certains appels d'offres"
+              label={t("signup.qualifications")}
+              hint={t("signup.qualificationsHint")}
             >
               <textarea
                 className="input-field min-h-[80px] resize-y"
@@ -149,7 +155,7 @@ export default function SignupPage() {
               />
             </Field>
 
-            <Field label="Email">
+            <Field label={t("common.email")}>
               <input
                 type="email"
                 name="signup-email"
@@ -161,7 +167,7 @@ export default function SignupPage() {
                 onChange={update("email")}
               />
             </Field>
-            <Field label="Mot de passe">
+            <Field label={t("common.password")}>
               <input
                 type="password"
                 name="signup-password"
@@ -176,14 +182,14 @@ export default function SignupPage() {
             </Field>
             <button type="submit" disabled={loading} className="btn-primary w-full">
               <UserPlus className="h-4 w-4" />
-              Creer mon compte
+              {t("signup.submit")}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-sand-900/60">
-            Deja inscrit ?{" "}
+            {t("signup.alreadyRegistered")}{" "}
             <Link href="/login" className="font-medium text-brand-700 hover:underline">
-              Se connecter
+              {t("common.login")}
             </Link>
           </p>
         </div>

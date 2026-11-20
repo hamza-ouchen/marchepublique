@@ -21,9 +21,9 @@ export default function AdminClients() {
         subtitle="Entreprises inscrites sur Sou9na."
         action={
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sand-900/40" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sand-900/40" />
             <input
-              className="input-field w-64 pl-9"
+              className="input-field w-64 ps-9"
               placeholder="Rechercher une entreprise..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -33,7 +33,7 @@ export default function AdminClients() {
       />
 
       <div className="card overflow-hidden">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead>
             <tr className="border-b border-sand-200 text-xs uppercase tracking-wide text-sand-900/40">
               <th className="px-6 py-3 font-medium">Entreprise</th>

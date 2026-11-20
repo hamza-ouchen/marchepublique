@@ -69,7 +69,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between px-6 py-4">
           <h2 className="text-sm font-semibold text-sand-900">Conversations recentes</h2>
         </div>
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead>
             <tr className="border-y border-sand-200 text-xs uppercase tracking-wide text-sand-900/40">
               <th className="px-6 py-3 font-medium">Client</th>

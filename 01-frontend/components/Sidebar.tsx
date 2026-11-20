@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LucideIcon, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/i18n";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageToggle } from "./LanguageToggle";
 import clsx from "clsx";
 
 export interface NavItem {
@@ -17,14 +19,18 @@ export interface NavItem {
 export function Sidebar({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   const isAdmin = user?.role === "admin";
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sand-200 bg-surface">
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-e border-sand-200 bg-surface">
       <div className="flex items-center justify-between px-5 py-5">
         <Logo />
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="px-5 pb-4">
@@ -36,7 +42,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
               : "border border-brand-100 bg-brand-50 text-brand-700"
           )}
         >
-          {isAdmin ? "Espace Admin" : "Espace TPME"}
+          {isAdmin ? t("common.spaceAdmin") : t("common.spaceUser")}
         </span>
       </div>
 
@@ -86,7 +92,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sand-900/70 transition-colors hover:bg-red-50 hover:text-red-700"
         >
           <LogOut className="h-[18px] w-[18px]" />
-          Deconnexion
+          {t("common.logout")}
         </button>
       </div>
     </aside>

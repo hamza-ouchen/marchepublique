@@ -3,14 +3,17 @@
 import { LayoutDashboard, History, UserCircle } from "lucide-react";
 import { RequireRole } from "@/components/RequireRole";
 import { Sidebar, NavItem } from "@/components/Sidebar";
-
-const items: NavItem[] = [
-  { href: "/user", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/user/historique", label: "Historique", icon: History },
-  { href: "/user/profil", label: "Mon profil", icon: UserCircle },
-];
+import { useLanguage } from "@/lib/i18n";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useLanguage();
+
+  const items: NavItem[] = [
+    { href: "/user", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { href: "/user/historique", label: t("nav.history"), icon: History },
+    { href: "/user/profil", label: t("nav.profile"), icon: UserCircle },
+  ];
+
   return (
     <RequireRole role="user">
       <div className="flex min-h-screen bg-sand-50">

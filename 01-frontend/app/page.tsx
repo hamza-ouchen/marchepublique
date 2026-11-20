@@ -4,13 +4,16 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, roleHome } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { HeroIllustration } from "@/components/HeroIllustration";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { MessageCircle, ShieldCheck, Languages, ArrowRight } from "lucide-react";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -31,12 +34,13 @@ export default function Home() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Logo />
         <nav className="flex items-center gap-3">
+          <LanguageToggle />
           <ThemeToggle />
           <Link href="/login" className="btn-secondary !px-4 !py-2 text-sm">
-            Se connecter
+            {t("common.login")}
           </Link>
           <Link href="/signup" className="btn-primary !px-4 !py-2 text-sm">
-            Creer un compte
+            {t("common.signup")}
           </Link>
         </nav>
       </header>
@@ -44,29 +48,27 @@ export default function Home() {
       <main className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-12 lg:grid-cols-2 lg:py-20">
         <div>
           <span className="badge badge-dot border border-brand-100 bg-brand-50 text-brand-700">
-            Plateforme IA marches publics
+            {t("landing.badge")}
           </span>
           <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight text-sand-900 sm:text-6xl">
-            Repondez aux appels d&apos;offres{" "}
-            <span className="text-brand-600">sans rater une ligne.</span>
+            {t("landing.title.a")}
+            <span className="text-brand-600">{t("landing.title.b")}</span>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-sand-900/60">
-            Sou9na accompagne votre TPME sur WhatsApp — en francais, arabe ou
-            darija. Reponses sourcees, et toujours une confirmation humaine
-            avant toute action sensible.
+            {t("landing.subtitle")}
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link href="/signup" className="btn-primary">
-              Creer mon compte TPME
-              <ArrowRight className="h-4 w-4" />
+              {t("landing.ctaPrimary")}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
             </Link>
             <Link href="/login" className="btn-secondary">
-              J&apos;ai deja un compte
+              {t("landing.ctaSecondary")}
             </Link>
           </div>
           <p className="mt-3 text-xs text-sand-900/40">
-            Gratuit pour commencer · Aucune carte bancaire requise
+            {t("landing.ctaNote")}
           </p>
 
           <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -75,8 +77,8 @@ export default function Home() {
                 <MessageCircle className="h-[18px] w-[18px]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-sand-900">Sur WhatsApp</p>
-                <p className="text-xs text-sand-900/50">Pas d&apos;app a installer</p>
+                <p className="text-sm font-medium text-sand-900">{t("landing.feature1.title")}</p>
+                <p className="text-xs text-sand-900/50">{t("landing.feature1.sub")}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -84,8 +86,8 @@ export default function Home() {
                 <Languages className="h-[18px] w-[18px]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-sand-900">FR / AR / Darija</p>
-                <p className="text-xs text-sand-900/50">Dans votre langue</p>
+                <p className="text-sm font-medium text-sand-900">{t("landing.feature2.title")}</p>
+                <p className="text-xs text-sand-900/50">{t("landing.feature2.sub")}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -93,8 +95,8 @@ export default function Home() {
                 <ShieldCheck className="h-[18px] w-[18px]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-sand-900">Confirmation humaine</p>
-                <p className="text-xs text-sand-900/50">Jamais d&apos;action seule</p>
+                <p className="text-sm font-medium text-sand-900">{t("landing.feature3.title")}</p>
+                <p className="text-xs text-sand-900/50">{t("landing.feature3.sub")}</p>
               </div>
             </div>
           </div>
