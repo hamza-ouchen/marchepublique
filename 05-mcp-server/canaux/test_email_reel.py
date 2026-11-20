@@ -1,4 +1,4 @@
-"""
+﻿"""
 test_email_reel.py — Script de test manuel : envoie un VRAI email via
 Brevo pour vérifier que .env + client_brevo.py fonctionnent ensemble.
 
@@ -17,7 +17,7 @@ from client_brevo import envoyer_template_email
 
 
 async def main():
-    destinataire = "ayoubabdemoughit75@gmail.com"
+    destinataire = "hamzamhalli95@gmail.com"
 
     print(f"Envoi d'un email de test a {destinataire}...")
 

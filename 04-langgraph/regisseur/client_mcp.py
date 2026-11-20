@@ -72,7 +72,7 @@ class ClientMCPRegisseur:
             endpoint = self.mcp_url
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json, text/event-stream",
-                   "Authorization": f"Bearer {self.mcp_token}"}
+                   "X-API-Key": self.mcp_token}
         async with httpx.AsyncClient(timeout=30) as cnx:
             init = await cnx.post(endpoint, json={
                 "jsonrpc": "2.0", "id": 1, "method": "initialize",
