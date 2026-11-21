@@ -1,0 +1,3 @@
+artifacts/
+*.egg-info/
+build/

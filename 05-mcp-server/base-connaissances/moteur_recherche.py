@@ -333,6 +333,14 @@ def _chercher_astra(requete: str, corpus: str, nombre: int) -> dict | None:
 
 # ── Point d'entrée unique ───────────────────────────────────────────
 def chercher(requete: str, corpus: str = "faq", nombre: int = NOMBRE_PAR_DEFAUT) -> dict:
+    if (os.environ.get("MOTEUR") or "").strip().lower() == "rag":
+        try:
+            from sou9na_rag.project_service import chercher_projet
+
+            return chercher_projet(requete, corpus, nombre)
+        except Exception:
+            return {"passages": [], "vide": True, "citation_imposee": True,
+                    "hitl": True, "erreur": "rag_indisponible"}
     nombre = _borne(nombre)
     moteur = (os.environ.get("MOTEUR") or "auto").strip().lower()
     if moteur == "vectoriel":

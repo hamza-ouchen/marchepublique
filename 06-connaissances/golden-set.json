@@ -1,0 +1,307 @@
+{
+  "kind": "reference_pdf_smoke",
+  "independent_legal_validation": false,
+  "document_sha256": "c7bc93a38546ea218e02d4a4a5680f4fb7e4cd14ae3b7c3373436727a6a1a06d",
+  "questions": [
+    {
+      "ask": "Qu'est-ce que SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-001",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "En quoi SOUKNA est-il différent des autres plateformes de veille marocaines ?",
+      "corpus": "faq",
+      "expected_article": "Q-003",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quels sont les 5 agents spécialisés de l'architecture SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-005",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que signifient les verdicts GO, À ÉTUDIER et NO-GO de SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-007",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que vérifie concrètement le « pré-check d'éligibilité » (agent MUTABIQ) ?",
+      "corpus": "faq",
+      "expected_article": "Q-009",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Puis-je poser des questions libres sur un dossier directement sur WhatsApp ?",
+      "corpus": "faq",
+      "expected_article": "Q-011",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quels types de marchés SOUKNA couvre-t-il en priorité ?",
+      "corpus": "faq",
+      "expected_article": "Q-013",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que se passe-t-il si le portail officiel marchespublics.gov.ma tombe en panne ?",
+      "corpus": "faq",
+      "expected_article": "Q-015",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "À quoi sert l'agent KHIBRA (Intelligence des PV et des prix) ?",
+      "corpus": "faq",
+      "expected_article": "Q-017",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Qu'est-ce que le « Pack victoire » mentionné dans le parcours SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-019",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment fonctionne l'escalade humaine (HITL) sur les dossiers à fort enjeu ?",
+      "corpus": "faq",
+      "expected_article": "Q-021",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "SOUKNA collecte-t-il uniquement marchespublics.gov.ma ou d'autres portails ?",
+      "corpus": "faq",
+      "expected_article": "Q-023",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "SOUKNA convient-il à une entreprise qui n'a jamais soumissionné auparavant ?",
+      "corpus": "faq",
+      "expected_article": "Q-025",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quelles informations dois-je renseigner dans mon profil entreprise pour avoir un",
+      "corpus": "faq",
+      "expected_article": "Q-027",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quels sont les différents forfaits et tarifs de SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-029",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que contient le plan Quotidien (199 DH/mois) ?",
+      "corpus": "faq",
+      "expected_article": "Q-031",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Puis-je payer uniquement pour un dossier précis sans prendre d'abonnement",
+      "corpus": "faq",
+      "expected_article": "Q-033",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quels moyens de paiement sont acceptés au Maroc ?",
+      "corpus": "faq",
+      "expected_article": "Q-035",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Les prix affichés incluent-ils la TVA marocaine ?",
+      "corpus": "faq",
+      "expected_article": "Q-037",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Les abonnements mensuels sont-ils soumis à une durée d'engagement ?",
+      "corpus": "faq",
+      "expected_article": "Q-039",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que deviennent mes données et mon historique si je résilie mon abonnement ?",
+      "corpus": "faq",
+      "expected_article": "Q-041",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Un cabinet fiduciaire ou un consultant peut-il gérer plusieurs clients sur SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-043",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment contacter le support client SOUKNA et quels sont les horaires ?",
+      "corpus": "faq",
+      "expected_article": "Q-045",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment fonctionne la politique de remboursement en cas d'insatisfaction ?",
+      "corpus": "faq",
+      "expected_article": "Q-047",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment fonctionne le programme de parrainage SOUKNA ?",
+      "corpus": "faq",
+      "expected_article": "Q-049",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Qu'est-ce que le portail marchespublics.gov.ma ?",
+      "corpus": "faq",
+      "expected_article": "Q-051",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quelles sont les conditions techniques pour déposer une offre sur",
+      "corpus": "faq",
+      "expected_article": "Q-053",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Suffit-il de signer électroniquement l'enveloppe globale lors du dépôt ?",
+      "corpus": "faq",
+      "expected_article": "Q-055",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quelles pièces doivent obligatoirement être déposées dès la soumission initiale ?",
+      "corpus": "faq",
+      "expected_article": "Q-057",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Qu'est-ce que la Déclaration sur l'Honneur et pourquoi est-elle critique ?",
+      "corpus": "faq",
+      "expected_article": "Q-059",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment constituer un cautionnement provisoire au Maroc ?",
+      "corpus": "faq",
+      "expected_article": "Q-061",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment et quand récupère-t-on le cautionnement provisoire (mainlevée) ?",
+      "corpus": "faq",
+      "expected_article": "Q-063",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Un auto-entrepreneur marocain peut-il répondre aux marchés publics et bons de",
+      "corpus": "faq",
+      "expected_article": "Q-065",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que faire si le Règlement de Consultation impose une visite des lieux ?",
+      "corpus": "faq",
+      "expected_article": "Q-067",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quelles sont les limites de format et de poids des fichiers sur marchespublics.gov.ma",
+      "corpus": "faq",
+      "expected_article": "Q-069",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Puis-je modifier ou retirer mon offre après l'avoir déposée sur le portail ?",
+      "corpus": "faq",
+      "expected_article": "Q-071",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment se présente un groupement d'entreprises (cotraitance) sur un marché",
+      "corpus": "faq",
+      "expected_article": "Q-073",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quelles sont les erreurs arithmétiques fréquentes dans le bordereau des prix (BPDE)",
+      "corpus": "faq",
+      "expected_article": "Q-075",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Qu'est-ce que la qualification et classification BTP et est-elle exigée pour tous les",
+      "corpus": "faq",
+      "expected_article": "Q-077",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Que signifie un appel d'offres déclaré « infructueux » ?",
+      "corpus": "faq",
+      "expected_article": "Q-079",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quel est le texte de loi principal qui régit les marchés publics au Maroc ?",
+      "corpus": "faq",
+      "expected_article": "Q-081",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quels sont les différents modes de passation des marchés publics au Maroc ?",
+      "corpus": "faq",
+      "expected_article": "Q-083",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quels sont les délais légaux de publicité d'un appel d'offres ouvert ?",
+      "corpus": "faq",
+      "expected_article": "Q-085",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment fonctionne le mécanisme du « prix de référence » (offre économiquement la",
+      "corpus": "faq",
+      "expected_article": "Q-087",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Qu'est-ce qu'une offre anormalement basse (OAB) et quels sont ses seuils ?",
+      "corpus": "faq",
+      "expected_article": "Q-089",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Comment fonctionne la réserve de 30 % des marchés publics aux TPME (article 148) ?",
+      "corpus": "faq",
+      "expected_article": "Q-091",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Qu'est-ce que la clause d'emploi de la main-d'œuvre locale (article 149) ?",
+      "corpus": "faq",
+      "expected_article": "Q-093",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quelles sont les réformes en préparation fin 2026 / PLF 2027 pour les marchés publics",
+      "corpus": "faq",
+      "expected_article": "Q-095",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "Quel est le délai légal de paiement d'un marché public au Maroc ?",
+      "corpus": "faq",
+      "expected_article": "Q-097",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    },
+    {
+      "ask": "La loi n° 69-21 sur les délais de paiement s'applique-t-elle aux marchés publics ?",
+      "corpus": "faq",
+      "expected_article": "Q-099",
+      "expected_source": "Base de Connaissances Officielle SOUKNA (RAG).pdf"
+    }
+  ]
+}

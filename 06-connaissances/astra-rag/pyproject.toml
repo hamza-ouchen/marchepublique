@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sou9na-reference-rag"
+version = "0.1.0"
+description = "Ingestion PDF et recherche documentaire SOUKNA avec LangGraph et Astra DB"
+requires-python = ">=3.12"
+dependencies = ["astrapy==2.3.2", "langgraph==1.2.23", "pypdf==7.1.1", "tokenizers==0.23.3", "httpx==0.28.1", "psycopg[binary]==3.3.9"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0", "ruff==0.17.6"]
+
+[tool.setuptools.packages.find]
+include = ["sou9na_rag*"]
+
+[tool.setuptools.package-data]
+sou9na_rag = ["assets/*.json"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
