@@ -11,7 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import cps_extract, cps_ingest
+from soukna_graph.tools import cps_extract, cps_ingest
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cps_fixture.pdf"
@@ -70,7 +70,8 @@ def test_ocr_fallback_graceful(monkeypatch):
 
 
 def test_size_guard(monkeypatch):
-    monkeypatch.setattr(cps_ingest.db, "tender_document_by_reference", lambda ref: None)
+    import soukna_graph.tools.cps_ingest as ci
+    monkeypatch.setattr(ci.db, "tender_document_by_reference", lambda ref: None)
     big = b"x" * (26 * 1024 * 1024)
     res = cps_ingest.ingest_cps("REF-X", big)
     assert res["status"] == "skipped"
@@ -78,7 +79,7 @@ def test_size_guard(monkeypatch):
 
 
 def test_cps_status_missing(monkeypatch):
-    import db_cps as dbmod
+    import soukna_graph.db as dbmod
     monkeypatch.setattr(dbmod, "tender_document_by_reference", lambda ref: None)
     monkeypatch.setattr(dbmod, "query", lambda sql, params=(): [{"n": 0}])
     res = dbmod.cps_status("REF-X")

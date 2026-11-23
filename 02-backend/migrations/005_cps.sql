@@ -1,110 +1,77 @@
--- ═══════════════════════════════════════════════════════════════════
--- SOU9NA — Couche « documents CPS » (2 tables, à exécuter APRÈS 004)
--- Référence : 11-documentation/v2.6/06-mission-midouni-cps.md
---             + 11-documentation/v2.6/05-mission-ouchen-rag.md
--- Exécution : Supabase → SQL Editor → coller le fichier → Run
--- Idempotent : CREATE TABLE/INDEX IF NOT EXISTS + contraintes nommées (norme N7).
+-- =====================================================================
+-- Soukna — migration 005 : documents CPS (Cahier des Prescriptions
+-- Spéciales) attachés aux tenders.
 --
--- DÉCISION ASTRA (18/11) — UNE SEULE collection `sou9na` pour TOUS les
--- documents (réglementation, CPS, FAQ, jurisprudence). Le `corpus` passé à
--- `chercher()` reste un FILTRE LOGIQUE (métadonnée `type`), jamais une
--- collection physique séparée.
---
--- ⚠️ RÉCONCILIÉE PAR 006 (19/11) : `cps_uploads` est supprimée ; le
--- référentiel unique est `tender_documents` (existante, contient un CPS réel).
--- `cps_sections` est rattachée à `tender_documents.id`. Ce fichier reste
--- l'historique de la première version de la couche CPS.
---
--- Flux des statuts (une seule vérité, deux propriétaires) :
---   downloading ──(Midouni)──> extracted ──(Ouchen)──> ready
---        │                         │
---        └──> echec / missing_cps <┘  (motif obligatoire, jamais silencieux)
--- ═══════════════════════════════════════════════════════════════════
+-- Aligné sur le schéma réel de Supabase (tender_documents + cps_sections).
+-- Idempotent : ré-exécutable sans risque.
+-- =====================================================================
 
--- ─────────────────────────────────────────────────────────────────
--- 17. cps_uploads — un PDF déposé dans Supabase Storage (bucket
---     `cps-originaux`), avec son état de traitement.
---     Un AO peut porter PLUSIEURS documents : CPS principale + addenda
---     + annexes → clé métier (reference, document_name).
--- ─────────────────────────────────────────────────────────────────
-create table if not exists cps_uploads (
-  id               uuid primary key default gen_random_uuid(),
-  reference        text not null references tenders(reference) on delete cascade,
-  document_name    text not null,              -- cps.pdf · addenda-1.pdf · annexe-tech.pdf
-  storage_path     text,                       -- 2026/2026-DTR-0123/cps.pdf (bucket cps-originaux)
-  checksum_sha256  text,                       -- empreinte du fichier (rejeu / doublons)
-  pages            int     check (pages is null or pages > 0),
-  sections         int     check (sections is null or sections >= 0),
-  char_count       int     check (char_count is null or char_count >= 0),
-  taille_octets    bigint  check (taille_octets is null or taille_octets > 0),
-  statut           text not null default 'downloading'
-                   check (statut in ('downloading','extracted','ready','echec','missing_cps')),
-  echec_raison     text,                       -- obligatoire si echec / missing_cps
-  downloaded_at    timestamptz not null default now(),
-  updated_at       timestamptz not null default now(),
+create extension if not exists pgcrypto;
 
-  constraint cps_uploads_reference_document_unique unique (reference, document_name),
-  constraint cps_uploads_storage_path_unique      unique (storage_path),
-
-  -- Un PDF téléchargé a toujours un chemin ; seul `missing_cps` en est dispensé.
-  constraint cps_uploads_chemin_requis check (
-    statut in ('downloading','missing_cps') or storage_path is not null
-  ),
-
-  -- Tout blocage doit être expliqué (pas d'échec muet).
-  constraint cps_uploads_motif_requis check (
-    statut not in ('echec','missing_cps')
-    or (echec_raison is not null and length(trim(echec_raison)) > 0)
-  )
+-- Documents bruts (PDF CPS/DCE/AVIS/...) attachés à un tender.
+CREATE TABLE IF NOT EXISTS tender_documents (
+    id            BIGSERIAL PRIMARY KEY,
+    reference     TEXT NOT NULL REFERENCES tenders(reference) ON DELETE CASCADE,
+    doc_type      TEXT CHECK (doc_type IN ('CPS','DCE','AVIS','ADDITIF','PV')),
+    filename      TEXT,
+    mime          TEXT,
+    storage_path  TEXT NOT NULL,            -- ex. "2026/2026.DTR.0123/cps.pdf"
+    sha256        TEXT NOT NULL UNIQUE,
+    size_bytes    BIGINT,
+    pages         INTEGER,
+    extraction    TEXT,                     -- ex. "pypdf", "ocr_tesseract_fra_best"
+    extracted_text TEXT,
+    source_url    TEXT,
+    request_id    TEXT,
+    downloaded_at TIMESTAMPTZ,
+    statut        TEXT NOT NULL CHECK (statut IN
+                  ('downloading','extracted','ready','echec','missing_cps')),
+    echec_raison  TEXT,
+    sections      INTEGER CHECK (sections IS NULL OR sections >= 0),
+    char_count    INTEGER CHECK (char_count IS NULL OR char_count >= 0),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- cohérence : echec/missing_cps exigent une raison
+    CONSTRAINT tender_documents_motif_requis CHECK (
+        statut NOT IN ('echec','missing_cps')
+        OR (echec_raison IS NOT NULL AND length(trim(echec_raison)) > 0)
+    )
 );
 
-create index if not exists idx_cps_uploads_reference on cps_uploads (reference);
-create index if not exists idx_cps_uploads_file    on cps_uploads (statut, updated_at);
-create index if not exists idx_cps_uploads_checksum on cps_uploads (checksum_sha256);
+CREATE INDEX IF NOT EXISTS idx_tender_documents_reference
+    ON tender_documents(reference);
+CREATE INDEX IF NOT EXISTS idx_tender_documents_statut
+    ON tender_documents(statut);
 
--- ─────────────────────────────────────────────────────────────────
--- 18. cps_sections — découpage déterministe du texte du PDF.
---     `section_no` = ordre de lecture (1..n) · `numero` = numéro
---     d'origine (« 2.1 », « ARTICLE 5 ») pour la citation.
--- ─────────────────────────────────────────────────────────────────
-create table if not exists cps_sections (
-  id             uuid primary key default gen_random_uuid(),
-  reference      text not null,
-  document_name  text not null,
-  section_no     int  not null check (section_no > 0),
-  numero         text,                         -- numéro d'origine (citation)
-  titre          text,
-  texte          text not null check (length(trim(texte)) > 0),
-  pages_section  text,                         -- « p. 12-14 »
-  cree_le        timestamptz not null default now(),
-
-  constraint cps_sections_pk unique (reference, document_name, section_no),
-  constraint cps_sections_document_fk
-    foreign key (reference, document_name)
-    references cps_uploads (reference, document_name) on delete cascade
+-- Sections extraites d'un document (texte + titre + plage de pages).
+CREATE TABLE IF NOT EXISTS cps_sections (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id  BIGINT NOT NULL REFERENCES tender_documents(id) ON DELETE CASCADE,
+    section_no   INTEGER NOT NULL CHECK (section_no > 0),
+    numero       TEXT,
+    titre        TEXT,
+    texte        TEXT NOT NULL CHECK (length(trim(texte)) > 0),
+    pages_section TEXT,
+    cree_le      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (document_id, section_no)
 );
 
-create index if not exists idx_cps_sections_reference on cps_sections (reference, document_name, section_no);
+CREATE INDEX IF NOT EXISTS idx_cps_sections_document
+    ON cps_sections(document_id);
 
--- Recherche lexicale de secours (avant/à côté des vecteurs Astra).
-create index if not exists idx_cps_sections_fts
-  on cps_sections
-  using gin (to_tsvector('french',
-    coalesce(numero, '') || ' ' || coalesce(titre, '') || ' ' || texte));
+-- Vue de commodité pour le dashboard (lecture seule, sans texte brut).
+CREATE OR REPLACE VIEW v_tenders_documents AS
+SELECT t.reference, t.organisme, t.objet, t.secteur, t.region,
+       td.id AS document_id, td.doc_type, td.filename, td.mime,
+       td.storage_path, td.sha256, td.size_bytes, td.pages, td.extraction,
+       td.statut, td.echec_raison, td.sections, td.char_count,
+       td.downloaded_at, td.updated_at, td.source_url
+FROM tenders t
+LEFT JOIN tender_documents td ON td.reference = t.reference;
 
--- ─────────────────────────────────────────────────────────────────
--- RLS — tables internes : aucune policy → service_role uniquement
--- (comme run_logs / otp_codes / admins). Le frontend ne voit jamais
--- le texte brut ; l'état CPS est exposé par FastAPI, filtré.
--- ─────────────────────────────────────────────────────────────────
-alter table cps_uploads  enable row level security;
-alter table cps_sections enable row level security;
+-- RLS : service_role lit/écrit tout ; anon/authenticated n'ont aucun accès
+-- au texte brut (cps_sections) ni aux documents.
+ALTER TABLE tender_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cps_sections ENABLE ROW LEVEL SECURITY;
 
-comment on table cps_uploads is
-  'PDF CPS déposés dans Storage (bucket cps-originaux) + état downloading/extracted/ready/echec/missing_cps';
-comment on column cps_uploads.statut is
-  'downloading → extracted (Midouni) → ready (Ouchen) | echec | missing_cps';
-comment on table cps_sections is
-  'Sections numérotées extraites des CPS — source des citations JUGE (texte brut, service_role uniquement)';
-comment on column cps_sections.numero is
-  'Numéro d''origine dans le document (« 2.1 », « ARTICLE 5 ») — utilisé dans les justifications';
+-- Le backend (service_role) contourne RLS par défaut ; aucune policy pour
+-- anon/authenticated = accès refusé (lecture via backend uniquement).

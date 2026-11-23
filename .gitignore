@@ -6,6 +6,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.traineddata
 .venv/
 venv/
 .pytest_cache/
@@ -34,7 +35,8 @@ langsmith/
 .turbo/
 coverage/
 
-# Astra DB / secrets divers — jamais commités
-**/astra-credentials.json
-**/astra-credentials*.json
-
+# Artefacts d'exécution des agents (jamais commités)
+offers_clean*.json
+portal_walk_state.json
+audit_map.jsonl
+cron_docs_status.json

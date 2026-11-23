@@ -1,6 +1,7 @@
 # =====================================================================
-# Extraction déterministe de texte CPS (PDF) -> sections.
-# Pas de LLM. pypdf en premier ; OCR (pytesseract) si < 100 caractères.
+# Extraction déterministe de texte de documents PDF (CPS/DCE).
+# pypdf d'abord, OCR (pytesseract) si texte insuffisant ; découpage en
+# sections par titres numérotés. Aucun LLM.
 # =====================================================================
 from __future__ import annotations
 
@@ -8,6 +9,8 @@ import hashlib
 import io
 import re
 from typing import Any
+
+from . import config
 
 MIN_TEXT_CHARS = 100
 
@@ -18,56 +21,92 @@ def _sha256(data: bytes) -> str:
 
 def extract_with_pypdf(data: bytes) -> tuple[str, int]:
     from pypdf import PdfReader
+
     reader = PdfReader(io.BytesIO(data))
-    pages = []
-    for p in reader.pages:
-        pages.append(p.extract_text() or "")
+    pages = [(p.extract_text() or "") for p in reader.pages]
     text = "\n\n".join(f"----- PAGE {i+1} -----\n{t}" for i, t in enumerate(pages))
     return text, len(reader.pages)
 
 
+def _tesseract_cmd() -> str | None:
+    """Binaire tesseract : config, PATH, puis emplacements Windows courants."""
+    import os
+    from shutil import which
+
+    if config.TESSERACT_CMD:
+        return config.TESSERACT_CMD
+    found = which("tesseract")
+    if found:
+        return found
+    for candidate in (
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ):
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def _ocr_lang() -> str:
+    """Langue disponible dans tessdata (fra de préférence, repli eng)."""
+    import os
+
+    requested = config.OCR_LANG
+    tessdata = config.TESSDATA_DIR
+    if os.path.exists(os.path.join(tessdata, requested + ".traineddata")):
+        return requested
+    if os.path.exists(os.path.join(tessdata, "eng.traineddata")):
+        return "eng"
+    return requested
+
+
 def extract_with_ocr(data: bytes) -> tuple[str, int]:
-    # Fallback OCR pour pages scannées. Requiert pytesseract + pdf2image +
-    # binaire tesseract installé. Lève ImportError si absent.
+    """OCR des PDF scannés via PyMuPDF (rendu) + tesseract, sans poppler."""
+    import os
+
+    import pymupdf
     import pytesseract
-    from pdf2image import convert_from_bytes
-    images = convert_from_bytes(data, dpi=200)
-    pages = []
-    for i, img in enumerate(images):
-        pages.append(f"----- PAGE {i+1} -----\n" + (pytesseract.image_to_string(img, lang="fra") or ""))
-    return "\n\n".join(pages), len(images)
+    from PIL import Image
+
+    cmd = _tesseract_cmd()
+    if not cmd:
+        raise RuntimeError("binaire tesseract introuvable (TESSERACT_CMD)")
+    pytesseract.pytesseract.tesseract_cmd = cmd
+    lang = _ocr_lang()
+    tessdata = config.TESSDATA_DIR
+    if os.path.isdir(tessdata):
+        os.environ["TESSDATA_PREFIX"] = tessdata
+
+    pages: list[str] = []
+    with pymupdf.open(stream=data, filetype="pdf") as doc:
+        for index, page in enumerate(doc):
+            pix = page.get_pixmap(dpi=config.OCR_DPI)
+            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            text = pytesseract.image_to_string(image, lang=lang)
+            pages.append(f"----- PAGE {index + 1} -----\n{text or ''}")
+    return "\n\n".join(pages), len(pages)
 
 
 def extract_text(data: bytes) -> dict[str, Any]:
-    """Retourne {text, pages, extraction, sha256, char_count}.
-
-    Stratégie : pypdf d'abord ; si le texte extrait fait moins de
-    MIN_TEXT_CHARS, on tente l'OCR. Si l'OCR est indisponible, on garde
-    le résultat pypdf (même vide) et on le signale.
-    """
+    """Retourne {text, pages, extraction, sha256, char_count}."""
     sha = _sha256(data)
-    # 1) pypdf
+    pypdf_err = None
     try:
         text, pages = extract_with_pypdf(data)
     except Exception as exc:
         text, pages = "", 0
         pypdf_err = str(exc)
-    else:
-        pypdf_err = None
 
     extraction = "pypdf"
     if len(text.strip()) < MIN_TEXT_CHARS:
-        # 2) OCR fallback
         try:
             ocr_text, ocr_pages = extract_with_ocr(data)
             if len(ocr_text.strip()) > len(text.strip()):
                 text, pages = ocr_text, ocr_pages
                 extraction = "ocr_tesseract_fra_best"
-        except (ImportError, Exception):
-            # OCR indisponible : on garde pypdf tel quel
+        except Exception:
             if pypdf_err:
                 extraction = f"pypdf_error:{pypdf_err[:80]}"
-
     return {
         "text": text,
         "pages": pages,
@@ -77,17 +116,14 @@ def extract_text(data: bytes) -> dict[str, Any]:
     }
 
 
-# ------------------------------------------------------------------ #
-# Découpage en sections par titres numérotés (regex déterministe).
-# ------------------------------------------------------------------ #
 _HEADER_RE = re.compile(
     r"^(?P<head>"
-    r"Article\s+\d+(?:\.\d+)*\.?"          # Article 1. / Article 1.2
-    r"|Art(?:icle)?\s*[IVXLC]+\."          # Article IV.
-    r"|\d+(?:\.\d+)*\s*[-–.]\s*\S"        # 1. Titre / 1- Titre
-    r"|Chapitre\s+[IVXLC\d]+"              # Chapitre I / 1
+    r"Article\s+\d+(?:\.\d+)*\.?"
+    r"|Art(?:icle)?\s*[IVXLC]+\."
+    r"|\d+(?:\.\d+)*\s*[-–.]\s*\S"
+    r"|Chapitre\s+[IVXLC\d]+"
     r"|Titre\s+[IVXLC\d]+"
-    r"|Pi[eè]ce\s+[IVXLC\d]+"             # Pièce III
+    r"|Pi[eè]ce\s+[IVXLC\d]+"
     r"|Section\s+\d+"
     r")",
     re.IGNORECASE | re.MULTILINE,
@@ -95,32 +131,23 @@ _HEADER_RE = re.compile(
 
 
 def split_into_sections(text: str) -> list[dict[str, Any]]:
-    """Découpe le texte en sections selon les titres numérotés.
-
-    Retourne une liste de dicts :
-      {section_no, numero, titre, texte, pages_section}
-    Si aucun titre n'est détecté, retourne une section unique (section_no=1).
-    """
+    """Découpe le texte en sections selon les titres numérotés."""
     if not text.strip():
         return []
-
-    # Trouver toutes les positions de début de section.
     matches = list(_HEADER_RE.finditer(text))
     if not matches:
         return [{"section_no": 1, "numero": None, "titre": None,
                  "texte": text.strip(), "pages_section": _pages_for(text)}]
 
     sections: list[dict[str, Any]] = []
-    # Texte avant le premier titre = préambule (section 0 -> on le garde en 1 si non vide)
-    preamble = text[:matches[0].start()].strip()
-    # Retirer les marqueurs de page du préambule (bruit)
-    preamble = re.sub(r"----- PAGE \d+ -----\n?", "", preamble).strip()
+    preamble = re.sub(r"----- PAGE \d+ -----\n?", "",
+                      text[:matches[0].start()]).strip()
     if preamble and len(preamble) > 20:
         page_no = None
         for pm in re.finditer(r"----- PAGE (\d+) -----", text[:matches[0].start()]):
             page_no = int(pm.group(1))
-        sections.append({"section_no": len(sections) + 1, "numero": None,
-                         "titre": "Préambule", "texte": preamble,
+        sections.append({"section_no": 1, "numero": None, "titre": "Préambule",
+                         "texte": preamble,
                          "pages_section": (f"p. {page_no}" if page_no else None)})
 
     for i, m in enumerate(matches):
@@ -129,29 +156,23 @@ def split_into_sections(text: str) -> list[dict[str, Any]]:
         chunk = text[start:end].strip()
         if not chunk:
             continue
-        # Première ligne = titre
         lines = chunk.splitlines()
         title_line = lines[0].strip() if lines else ""
         body = "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
         if not body:
-            body = chunk
-            title_line = None
-        # numero : partie numérique initiale du titre
+            body, title_line = chunk, None
         num_match = re.match(r"(\d+(?:\.\d+)*)", title_line or "")
         numero = num_match.group(1) if num_match else None
-        # page(s) : dernier marqueur de page avant le début de la section
         page_no = None
         for pm in re.finditer(r"----- PAGE (\d+) -----", text[:start]):
             page_no = int(pm.group(1))
         sections.append({
-            "section_no": len(sections) + 1,
+            "section_no": 0,  # renuméroté ci-dessous
             "numero": numero,
             "titre": title_line[:200] if title_line else None,
             "texte": (body if body else chunk)[:50000],
             "pages_section": (f"p. {page_no}" if page_no else None),
         })
-
-    # Renumeroter proprement 1..N
     for idx, s in enumerate(sections, 1):
         s["section_no"] = idx
     return sections

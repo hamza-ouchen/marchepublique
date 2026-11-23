@@ -1,0 +1,15 @@
+# Collecte de documents (INSPECTEUR)
+psycopg[binary,pool]>=3.2
+python-dotenv>=1.0
+requests>=2.31
+pypdf>=4.0
+
+# OCR des PDF scannés (tesseract doit être installé sur la machine)
+pymupdf>=1.24
+pillow>=10.0
+pytesseract>=0.3
+
+# Tests
+pytest>=8.0
+
+# OCR optionnel (PDF scannés) : pytesseract>=0.3 + pdf2image>=1.17 + binaire tesseract fra

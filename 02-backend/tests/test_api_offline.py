@@ -1,0 +1,155 @@
+# =====================================================================
+# API hors-ligne : health, vérification webhook Meta, payload vide.
+# Aucune base de données requise (startup tolère l'absence de DB).
+# =====================================================================
+import hashlib
+import hmac
+
+from fastapi.testclient import TestClient
+
+from api import app
+
+client = TestClient(app)
+
+
+def test_health():
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+
+
+def test_webhook_verify_wrong_token():
+    r = client.get("/webhook", params={
+        "hub.mode": "subscribe", "hub.verify_token": "wrong", "hub.challenge": "123456",
+    })
+    assert r.status_code == 403
+
+
+def test_webhook_verify_ok():
+    from soukna_graph import config
+    r = client.get("/webhook", params={
+        "hub.mode": "subscribe",
+        "hub.verify_token": config.WHATSAPP_VERIFY_TOKEN,
+        "hub.challenge": "123456",
+    })
+    assert r.status_code == 200
+    assert r.json() == 123456
+
+
+def test_webhook_post_empty_entry():
+    r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []})
+    assert r.status_code == 200
+    assert r.json() == {"received": True}
+
+
+def test_webhook_post_non_text_message_ignored():
+    # Accusé de réception / statut : aucun traitement, pas de DB
+    payload = {
+        "object": "whatsapp_business_account",
+        "entry": [{"changes": [{"value": {"messages": [{"id": "wamid.x", "from": "212600000000"}]}}],
+                   "id": "1"}],
+    }
+    r = client.post("/webhook", json=payload)
+    assert r.status_code == 200
+
+
+def test_auth_required_on_admin_endpoints():
+    assert client.get("/stats").status_code == 401
+    assert client.get("/observability").status_code == 401
+    assert client.post("/run").status_code == 401
+
+
+def test_login_invalid(monkeypatch):
+    # Hors-ligne : on neutralise les deux lectures DB du login (users,
+    # companies). Le repli admin .env ne matche pas ("wrong" != mdp).
+    monkeypatch.setattr("api.db.get_user_by_email", lambda email: None)
+    monkeypatch.setattr("api.db.query", lambda sql, params=(): [])
+    r = client.post("/auth/login", json={"username": "admin", "password": "wrong"})
+    assert r.status_code == 401
+
+
+# --- Signature webhook Meta (X-Hub-Signature-256) -------------------------
+
+
+def _signed(body: bytes, secret: str) -> str:
+    return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+
+
+def test_webhook_signature_valid(monkeypatch):
+    secret = "test-app-secret"
+    import soukna_graph.config as cfg
+    monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", secret)
+    monkeypatch.setattr("api.config", cfg)
+    body = b'{"object":"whatsapp_business_account","entry":[]}'
+    r = client.post("/webhook", content=body,
+                    headers={"Content-Type": "application/json",
+                             "X-Hub-Signature-256": _signed(body, secret)})
+    assert r.status_code == 200
+
+
+def test_webhook_signature_missing_rejected(monkeypatch):
+    import soukna_graph.config as cfg
+    monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", "test-app-secret")
+    monkeypatch.setattr("api.config", cfg)
+    r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []})
+    assert r.status_code == 403
+
+
+def test_webhook_signature_bad_rejected(monkeypatch):
+    import soukna_graph.config as cfg
+    monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", "test-app-secret")
+    monkeypatch.setattr("api.config", cfg)
+    r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []},
+                    headers={"X-Hub-Signature-256": "sha256=" + "0" * 64})
+    assert r.status_code == 403
+
+
+def test_webhook_signature_absent_secret_no_check(monkeypatch):
+    # Secret non configuré (dev local) : aucune exigence de signature.
+    import soukna_graph.config as cfg
+    monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", "")
+    monkeypatch.setattr("api.config", cfg)
+    r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []})
+    assert r.status_code == 200
+
+
+# --- Déclencheur cron externe (POST /cron/run) ----------------------------
+
+def _patch_cron(monkeypatch, secret: str) -> None:
+    import soukna_graph.config as cfg
+    monkeypatch.setattr(cfg, "CRON_SECRET", secret)
+    monkeypatch.setattr("api.config", cfg)
+
+    async def _noop() -> None:
+        return None
+
+    # On neutralise la tâche de fond : les tests ne doivent jamais
+    # exécuter le graphe (conftest interdit le contact DB).
+    monkeypatch.setattr("api._pipeline_background_task", _noop)
+
+
+def test_cron_run_disabled_without_secret(monkeypatch):
+    import soukna_graph.config as cfg
+    monkeypatch.setattr(cfg, "CRON_SECRET", "")
+    monkeypatch.setattr("api.config", cfg)
+    r = client.post("/cron/run", headers={"X-Cron-Secret": "x"})
+    assert r.status_code == 503
+
+
+def test_cron_run_wrong_secret_rejected(monkeypatch):
+    _patch_cron(monkeypatch, "real-cron-secret")
+    r = client.post("/cron/run", headers={"X-Cron-Secret": "wrong"})
+    assert r.status_code == 403
+
+
+def test_cron_run_missing_header_rejected(monkeypatch):
+    _patch_cron(monkeypatch, "real-cron-secret")
+    r = client.post("/cron/run")
+    assert r.status_code == 403
+
+
+def test_cron_run_ok_starts_background(monkeypatch):
+    _patch_cron(monkeypatch, "real-cron-secret")
+    r = client.post("/cron/run", headers={"X-Cron-Secret": "real-cron-secret"})
+    assert r.status_code == 200
+    assert r.json() == {"started": True, "mode": "cron"}

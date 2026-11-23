@@ -10,10 +10,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-import db_cps as db
-import cps_extract
+from soukna_graph import db
+from soukna_graph.tools import cps_extract
 
 MAX_PDF_BYTES = 25 * 1024 * 1024   # 25 Mo
 MAX_PAGES = 200
@@ -25,15 +25,18 @@ def ingest_cps(reference: str, pdf_bytes: bytes, *,
                filename: str | None = None,
                storage_path: str | None = None,
                storage_uploader: Callable[[str, bytes], str] | None = None,
-               request_id: str | None = None) -> dict[str, Any]:
+               request_id: str | None = None,
+               idempotent: bool = True) -> dict[str, Any]:
     """Ingère un CPS (PDF) pour un tender.
 
     Retourne un dict {status, document_id, sections, char_count, ...}.
     Idempotent : si un document 'extracted'/'ready' existe déjà pour ce
-    reference, on ne ré-ingère pas.
+    reference, on ne ré-ingère pas. `idempotent=False` permet d'ingérer
+    plusieurs pièces d'un même dossier DCE (le dédoublonnage exact reste
+    assuré par l'UNIQUE sha256 en base).
     """
     # 1) Idempotence
-    existing = db.tender_document_by_reference(reference)
+    existing = db.tender_document_by_reference(reference) if idempotent else None
     if existing and existing.get("statut") in ("extracted", "ready"):
         return {"status": "skipped", "reason": "already_ingested",
                 "document_id": existing["id"],
@@ -64,10 +67,18 @@ def ingest_cps(reference: str, pdf_bytes: bytes, *,
     # 5) Découpage en sections
     sections = cps_extract.split_into_sections(info["text"])
 
-    # 6) Statut final
+    # 6) Statut final — ingestion TOTALE : même un PDF scanné sans couche
+    # texte est stocké ; la faible qualité de texte est tracée dans
+    # echec_raison (sans bloquer) ; seuls les PDF illisibles (pages=0)
+    # restent en echec.
     has_text = len(info["text"].strip()) >= cps_extract.MIN_TEXT_CHARS
-    statut = "extracted" if has_text else "echec"
-    echec_raison = None if has_text else "texte insuffisant (< 100 chars)"
+    if info["pages"] and info["pages"] > 0:
+        statut = "extracted"
+        echec_raison = (None if has_text
+                        else f"texte insuffisant ({info['char_count']} chars)")
+    else:
+        statut = "echec"
+        echec_raison = "pdf illisible (aucune page)"
 
     # 7) Écriture DB
     doc = db.tender_document_create(
