@@ -3,7 +3,7 @@
 # =====================================================================
 from datetime import date
 
-from soukna_graph.tools.seed_data import SEED_OPPORTUNITIES
+from app.tools.seed_data import SEED_OPPORTUNITIES
 
 REQUIRED_KEYS = {"source_ref", "title", "buyer", "city", "region", "sector",
                  "domain_code", "deadline", "amount", "url", "raw"}
@@ -32,5 +32,5 @@ def test_deadlines_are_future_iso_dates():
 
 def test_sectors_cover_referential():
     sectors = {o["sector"] for o in SEED_OPPORTUNITIES}
-    from soukna_graph import config
+    from app import config
     assert sectors.issubset(set(config.SECTORS))

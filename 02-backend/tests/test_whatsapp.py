@@ -5,7 +5,7 @@
 # =====================================================================
 from types import SimpleNamespace
 
-from soukna_graph.tools import whatsapp
+from app.tools import whatsapp
 
 
 def _meta_response(payload: dict, status: int = 200):

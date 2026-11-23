@@ -1,7 +1,7 @@
 # =====================================================================
 # LLM : extraction JSON tolérante + fabrique (mode heuristique sans clé).
 # =====================================================================
-from soukna_graph.llm import extract_json, make_llm
+from app.llm import extract_json, make_llm
 
 
 def test_extract_json_plain():
@@ -24,7 +24,7 @@ def test_extract_json_invalid_returns_none():
 
 
 def test_make_llm_without_key_is_heuristic(monkeypatch):
-    from soukna_graph import config
+    from app import config
     monkeypatch.setattr(config, "MISTRAL_API_KEY", "")
     llm, mode = make_llm()
     assert llm is None

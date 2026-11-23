@@ -9,9 +9,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soukna_graph import config, db  # noqa: E402
-from soukna_graph.graph import build_graph  # noqa: E402
-from soukna_graph.tools.seed_data import SEED_OPPORTUNITIES  # noqa: E402
+from app import config, db  # noqa: E402
+from app.graph import build_graph  # noqa: E402
+from app.tools.seed_data import SEED_OPPORTUNITIES  # noqa: E402
 
 TEST_EMAIL = "eval-test@soukna.ma"
 TEST_PHONE = "+212600000001"

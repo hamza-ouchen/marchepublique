@@ -4,7 +4,7 @@
 # doivent PAS détourner l'intention ; les salutations restent des
 # salutations même longues.
 # =====================================================================
-from soukna_graph.nodes.orchestrator import heuristic_intent
+from app.nodes.orchestrator import heuristic_intent
 
 
 def test_greeting_fr():

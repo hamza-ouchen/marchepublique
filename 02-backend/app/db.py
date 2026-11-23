@@ -36,6 +36,13 @@ def putconn(conn: psycopg.Connection) -> None:
         _pool.putconn(conn)
 
 
+def close() -> None:
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        _pool = None
+
+
 def query(sql: str, params: tuple | list = ()) -> list[dict[str, Any]]:
     conn = connect()
     try:

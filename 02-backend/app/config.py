@@ -106,7 +106,8 @@ VERDICT_NOGO_MAX = int(os.getenv("VERDICT_NOGO_MAX", "45"))
 
 # --- Supabase Storage (CPS) -------------------------------------------
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY", "")
+                        or os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""))
 
 
 def supabase_storage_ready() -> bool:
@@ -155,3 +156,57 @@ KB_CHUNK_CHARS = int(os.getenv("KB_CHUNK_CHARS", "1200"))      # taille cible d'
 def astra_ready() -> bool:
     return bool(ASTRA_DB_API_ENDPOINT and ASTRA_DB_TOKEN)
 
+
+# --- OCR (PDF scannes) -------------------------------------------------
+import os as _os_ocr
+TESSERACT_CMD = _os_ocr.getenv('TESSERACT_CMD', '').strip()
+TESSDATA_DIR = _os_ocr.getenv('TESSDATA_DIR', '').strip()
+OCR_LANG = _os_ocr.getenv('OCR_LANG', 'fra').strip() or 'fra'
+try:
+    OCR_DPI = int(_os_ocr.getenv('OCR_DPI', '200'))
+except ValueError:
+    OCR_DPI = 200
+
+# --- Portail aomaroc (repli DCE) --------------------------------------
+AO_BASE = _os_ocr.getenv('AO_BASE', 'https://www.aomaroc.com').strip().rstrip('/')
+AO_ENABLED = _os_ocr.getenv('AO_FALLBACK_ENABLED', 'true').strip().lower() in ('1','true','yes','on','oui')
+
+# --- Identite declaree pour le telechargement DCE ---------------------
+DCE_FORM = {
+    'nom': _os_ocr.getenv('DCE_NOM', 'Soukna').strip(),
+    'prenom': _os_ocr.getenv('DCE_PRENOM', 'Bot').strip(),
+    'email': _os_ocr.getenv('DCE_EMAIL', 'contact@soukna.ma').strip(),
+    'raisonSocial': _os_ocr.getenv('DCE_RAISON_SOCIAL', 'Soukna').strip(),
+    'ICE': _os_ocr.getenv('DCE_ICE', '0023456780000AB').strip(),
+    'address': _os_ocr.getenv('DCE_ADRESSE', 'Casablanca').strip(),
+    'ville': _os_ocr.getenv('DCE_VILLE', 'Casablanca').strip(),
+    'cp': _os_ocr.getenv('DCE_CP', '20000').strip(),
+    'tel': _os_ocr.getenv('DCE_TEL', '0600000000').strip(),
+}
+
+# --- Parametres du job complet (inspecteur) ---------------------------
+try:
+    WALK_MINUTES = float(_os_ocr.getenv('WALK_MINUTES', '10'))
+except ValueError:
+    WALK_MINUTES = 10.0
+try:
+    AUDIT_MINUTES = float(_os_ocr.getenv('AUDIT_MINUTES', '4'))
+except ValueError:
+    AUDIT_MINUTES = 4.0
+try:
+    DOCS_MINUTES = float(_os_ocr.getenv('DOCS_MINUTES', '8'))
+except ValueError:
+    DOCS_MINUTES = 8.0
+try:
+    FIELDS_MINUTES = float(_os_ocr.getenv('FIELDS_MINUTES', '5'))
+except ValueError:
+    FIELDS_MINUTES = 5.0
+try:
+    CPS_MAX_DOCS_PER_TENDER = int(_os_ocr.getenv('CPS_MAX_DOCS_PER_TENDER', '12'))
+except ValueError:
+    CPS_MAX_DOCS_PER_TENDER = 12
+try:
+    CPS_MAX_ZIP_BYTES = int(_os_ocr.getenv('CPS_MAX_ZIP_BYTES', str(80*1024*1024)))
+except ValueError:
+    CPS_MAX_ZIP_BYTES = 80*1024*1024
+DELETE_FINISHED_OFFERS = _os_ocr.getenv('DELETE_FINISHED_OFFERS', 'true').strip().lower() in ('1','true','yes','on','oui')

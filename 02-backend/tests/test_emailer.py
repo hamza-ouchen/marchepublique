@@ -3,8 +3,8 @@
 # et détails d'erreur diagnostiques (hébergeurs qui bloquent le SMTP
 # sortant). 100 % hors-ligne : smtplib est monkeypatché.
 # =====================================================================
-from soukna_graph import config
-from soukna_graph.tools import emailer
+from app import config
+from app.tools import emailer
 
 
 class _FakeSMTP:

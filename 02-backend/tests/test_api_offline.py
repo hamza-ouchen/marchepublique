@@ -26,7 +26,7 @@ def test_webhook_verify_wrong_token():
 
 
 def test_webhook_verify_ok():
-    from soukna_graph import config
+    from app import config
     r = client.get("/webhook", params={
         "hub.mode": "subscribe",
         "hub.verify_token": config.WHATSAPP_VERIFY_TOKEN,
@@ -77,7 +77,7 @@ def _signed(body: bytes, secret: str) -> str:
 
 def test_webhook_signature_valid(monkeypatch):
     secret = "test-app-secret"
-    import soukna_graph.config as cfg
+    import app.config as cfg
     monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", secret)
     monkeypatch.setattr("api.config", cfg)
     body = b'{"object":"whatsapp_business_account","entry":[]}'
@@ -88,7 +88,7 @@ def test_webhook_signature_valid(monkeypatch):
 
 
 def test_webhook_signature_missing_rejected(monkeypatch):
-    import soukna_graph.config as cfg
+    import app.config as cfg
     monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", "test-app-secret")
     monkeypatch.setattr("api.config", cfg)
     r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []})
@@ -96,7 +96,7 @@ def test_webhook_signature_missing_rejected(monkeypatch):
 
 
 def test_webhook_signature_bad_rejected(monkeypatch):
-    import soukna_graph.config as cfg
+    import app.config as cfg
     monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", "test-app-secret")
     monkeypatch.setattr("api.config", cfg)
     r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []},
@@ -106,7 +106,7 @@ def test_webhook_signature_bad_rejected(monkeypatch):
 
 def test_webhook_signature_absent_secret_no_check(monkeypatch):
     # Secret non configuré (dev local) : aucune exigence de signature.
-    import soukna_graph.config as cfg
+    import app.config as cfg
     monkeypatch.setattr(cfg, "WHATSAPP_APP_SECRET", "")
     monkeypatch.setattr("api.config", cfg)
     r = client.post("/webhook", json={"object": "whatsapp_business_account", "entry": []})
@@ -116,7 +116,7 @@ def test_webhook_signature_absent_secret_no_check(monkeypatch):
 # --- Déclencheur cron externe (POST /cron/run) ----------------------------
 
 def _patch_cron(monkeypatch, secret: str) -> None:
-    import soukna_graph.config as cfg
+    import app.config as cfg
     monkeypatch.setattr(cfg, "CRON_SECRET", secret)
     monkeypatch.setattr("api.config", cfg)
 
@@ -129,7 +129,7 @@ def _patch_cron(monkeypatch, secret: str) -> None:
 
 
 def test_cron_run_disabled_without_secret(monkeypatch):
-    import soukna_graph.config as cfg
+    import app.config as cfg
     monkeypatch.setattr(cfg, "CRON_SECRET", "")
     monkeypatch.setattr("api.config", cfg)
     r = client.post("/cron/run", headers={"X-Cron-Secret": "x"})

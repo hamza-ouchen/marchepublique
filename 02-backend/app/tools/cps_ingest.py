@@ -12,8 +12,8 @@ from typing import Any, Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from soukna_graph import db
-from soukna_graph.tools import cps_extract
+from app import db
+from app.tools import cps_extract
 
 MAX_PDF_BYTES = 25 * 1024 * 1024   # 25 Mo
 MAX_PAGES = 200

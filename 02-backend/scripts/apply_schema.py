@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soukna_graph import config, db  # noqa: E402
+from app import config, db  # noqa: E402
 
 SCHEMA_FILE = Path(__file__).resolve().parents[2] / "docs" / "supabase_schema.sql"
 

@@ -12,8 +12,8 @@ import sys
 
 sys.path.insert(0, ".")
 
-from soukna_graph.graph import run_pipeline  # noqa: E402
-from soukna_graph.state import AgentState  # noqa: E402
+from app.graph import run_pipeline  # noqa: E402
+from app.state import AgentState  # noqa: E402
 
 
 def main() -> int:

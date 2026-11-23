@@ -21,9 +21,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from starlette.requests import Request
 
-from soukna_graph import config, db, monitoring
-from soukna_graph.graph import build_graph
-from soukna_graph.tools import emailer, seed_data, whatsapp
+from app import config, db, monitoring
+from app.graph import build_graph
+from app.tools import emailer, seed_data, whatsapp
 
 app = FastAPI(title="Soukna Workflow API", version="1.1.0")
 
@@ -927,7 +927,7 @@ def admin_test_source(source_id: str,
     row = next((s for s in db.sources_list() if str(s["id"]) == source_id), None)
     if not row:
         raise HTTPException(404, "Source introuvable")
-    from soukna_graph.tools.scrapers import get_adapter
+    from app.tools.scrapers import get_adapter
     adapter = get_adapter(row.get("adapter", ""))
     if adapter is None:
         raise HTTPException(422, "adaptateur inconnu")

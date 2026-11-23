@@ -7,11 +7,11 @@ import asyncio
 
 import pytest
 
-from soukna_graph import db, monitoring  # noqa: F401  (db monkeypatché par conftest)
-from soukna_graph.nodes import sources as sources_mod
-from soukna_graph.nodes.sources import sources_node
-from soukna_graph.tools.scrapers import base as sc_base
-from soukna_graph.tools.scrapers import generic_rss
+from app import db, monitoring  # noqa: F401  (db monkeypatché par conftest)
+from app.nodes import sources as sources_mod
+from app.nodes.sources import sources_node
+from app.tools.scrapers import base as sc_base
+from app.tools.scrapers import generic_rss
 
 RSS_FIXTURE = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>

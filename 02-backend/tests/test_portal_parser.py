@@ -2,7 +2,7 @@
 # Parser du portail : fixture HTML hors-ligne reproduisant la structure
 # réelle observée en live (blocs ctlN, libellés sur 1 ou 2 lignes).
 # =====================================================================
-from soukna_graph.tools.portal import _after_label, _parse_deadline, _parse_rows, _sector_from_title
+from app.tools.portal import _after_label, _parse_deadline, _parse_rows, _sector_from_title
 
 FIXTURE = """
 <div>en-tête page</div>
@@ -85,7 +85,7 @@ def test_after_label_skips_residues():
 
 
 def test_far_future_deadline_is_neutralized():
-    # Une échéance à 2028 (fin d'affichage PV) doit devenir None
-    html = FIXTURE.replace("Ven 20 Nov 2026", "Ven 20 Oct 2028")
+    # Une échéance à plus de 5 ans (fin d'affichage PV) doit devenir None
+    html = FIXTURE.replace("Ven 20 Nov 2026", "Ven 20 Oct 2032")
     items = _parse_rows(html)
     assert items[0]["deadline"] is None

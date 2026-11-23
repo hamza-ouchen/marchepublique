@@ -17,8 +17,8 @@ import sys
 
 sys.path.insert(0, ".")
 
-from soukna_graph import config  # noqa: E402
-from soukna_graph.tools import astra_kb  # noqa: E402
+from app import config  # noqa: E402
+from app.tools import astra_kb  # noqa: E402
 
 
 def main() -> int:

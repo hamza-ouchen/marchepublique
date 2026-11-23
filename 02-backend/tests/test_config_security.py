@@ -1,8 +1,8 @@
 # =====================================================================
 # Config & sécurité : kill switch, liste blanche, seuils.
 # =====================================================================
-from soukna_graph import config
-from soukna_graph.tools.whatsapp import send_whatsapp
+from app import config
+from app.tools.whatsapp import send_whatsapp
 
 
 def test_is_test_recipient_tolerant():
@@ -45,7 +45,7 @@ def test_send_whatsapp_kill_switch_allows_whitelist(monkeypatch):
         return type("R", (), {"status_code": 200, "headers": {"content-type": "application/json"},
                               "json": lambda self: {"messages": [{"id": "wamid.x"}]}})()
 
-    import soukna_graph.tools.whatsapp as wa
+    import app.tools.whatsapp as wa
     monkeypatch.setattr(wa.requests, "post", fake_post)
     sent, detail = send_whatsapp("+212 600 000 000", "test")
     assert sent is True

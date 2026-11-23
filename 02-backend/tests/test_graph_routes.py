@@ -1,7 +1,7 @@
 # =====================================================================
 # Routage du graphe : les deux modes (pipeline / chat) et les court-cuits.
 # =====================================================================
-from soukna_graph.graph import _after_digest, _route_from_intake, _route_from_orchestrator
+from app.graph import _after_digest, _route_from_intake, _route_from_orchestrator
 
 
 def test_intake_routes_pipeline():

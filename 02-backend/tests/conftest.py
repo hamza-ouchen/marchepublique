@@ -7,7 +7,7 @@
 # =====================================================================
 import pytest
 
-from soukna_graph import db
+from app import db
 
 
 @pytest.fixture(autouse=True)

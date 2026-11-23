@@ -25,7 +25,7 @@ from _common import (  # noqa: E402
     run_graph,
 )
 
-from soukna_graph.llm import mistral_judge  # noqa: E402
+from app.llm import mistral_judge  # noqa: E402
 
 CASES_PATH = ROOT / "tests" / "test_cases.json"
 ARTIFACTS = ROOT / "artifacts"

@@ -31,8 +31,8 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soukna_graph import db
-from soukna_graph.tools import cps_ingest, storage
+from app import db
+from app.tools import cps_ingest, storage
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")

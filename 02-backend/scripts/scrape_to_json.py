@@ -20,7 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soukna_graph.tools import portal
+from app.tools import portal
 
 # Mapping ville -> région officielle (repli : on garde la ville si inconnue).
 _CITY_TO_REGION = {

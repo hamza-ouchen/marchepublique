@@ -7,9 +7,9 @@ import asyncio
 
 import pytest
 
-from soukna_graph import config
-from soukna_graph.nodes import faq
-from soukna_graph.tools import astra_kb
+from app import config
+from app.nodes import faq
+from app.tools import astra_kb
 
 
 # faq_node est décoré traced() (async) : exécuté via le get_event_loop

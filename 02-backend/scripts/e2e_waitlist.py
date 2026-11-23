@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 
 sys.path.insert(0, ".")
-from soukna_graph import db as dbm  # noqa: E402
+from app import db as dbm  # noqa: E402
 
 BASE = "http://localhost:8000"
 SUPA = "https://yncuubvarfizxrxoplnb.supabase.co/rest/v1/waitlist"

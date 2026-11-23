@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, ".")
 
-from soukna_graph import monitoring  # noqa: E402
+from app import monitoring  # noqa: E402
 
 
 def main() -> int:

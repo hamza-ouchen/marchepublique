@@ -8,7 +8,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from soukna_graph import config, monitoring
+from app import config, monitoring
 
 
 # ---------------------------------------------------------------------

@@ -1,8 +1,8 @@
 # =====================================================================
 # Matching (heuristique) + verdict (seuils).
 # =====================================================================
-from soukna_graph.nodes.matching import _heuristic_match
-from soukna_graph.nodes.verdict import _heuristic_verdict
+from app.nodes.matching import _heuristic_match
+from app.nodes.verdict import _heuristic_verdict
 
 COMPANY = {
     "name": "TechMaroc",

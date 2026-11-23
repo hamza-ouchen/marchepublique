@@ -26,7 +26,7 @@ except Exception:
     pass
 
 import psycopg
-from soukna_graph import config
+from app import config
 
 
 def to_date(v):

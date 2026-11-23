@@ -9,7 +9,7 @@ from typing import Callable
 
 import requests
 
-from soukna_graph import config
+from app import config
 
 
 def _creds() -> tuple[str, str] | None:

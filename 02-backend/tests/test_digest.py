@@ -3,7 +3,7 @@
 # =====================================================================
 import asyncio
 
-from soukna_graph.nodes.digest import REGISTER_HINT, build_digest_text
+from app.nodes.digest import REGISTER_HINT, build_digest_text
 
 COMPANY = {"name": "TechMaroc"}
 ITEMS = [
@@ -58,18 +58,18 @@ def test_register_hint_mentions_dashboard():
 
 def _run_pipeline_digest(monkeypatch, calls: dict, source_mode: str) -> list[dict]:
     """Exécute digest_node en mode pipeline avec persistance maquée."""
-    from soukna_graph.nodes import digest as digest_mod
+    from app.nodes import digest as digest_mod
     items_scoped = [dict(dict(it, company_id="c1")) for it in ITEMS]
     company = {"id": "c1", "name": "TechMaroc", "channel_whatsapp": 1,
                "phone": "+212600000000", "channel_email": 1,
                "email": "a@b.ma"}
-    monkeypatch.setattr("soukna_graph.nodes.digest.db.get_company",
+    monkeypatch.setattr("app.nodes.digest.db.get_company",
                         lambda cid: company)
-    monkeypatch.setattr("soukna_graph.nodes.digest.db.save_digest",
+    monkeypatch.setattr("app.nodes.digest.db.save_digest",
                         lambda **kw: calls.setdefault("saves", []).append(kw))
-    monkeypatch.setattr("soukna_graph.nodes.digest.send_whatsapp",
+    monkeypatch.setattr("app.nodes.digest.send_whatsapp",
                         lambda phone, text: (True, "ok"))
-    monkeypatch.setattr("soukna_graph.nodes.digest.send_email",
+    monkeypatch.setattr("app.nodes.digest.send_email",
                         lambda email, subject, text: (True, "ok"))
     asyncio.run(digest_mod.digest_node({"run_pipeline": True, "source_mode": source_mode,
                             "matches": items_scoped}))
@@ -78,7 +78,7 @@ def _run_pipeline_digest(monkeypatch, calls: dict, source_mode: str) -> list[dic
 
 def test_pipeline_seed_fallback_blocks_external_channels(monkeypatch, tmp_path):
     saves = _run_pipeline_digest(monkeypatch, {}, "seed")
-    from soukna_graph.nodes.digest import SEED_NOTICE
+    from app.nodes.digest import SEED_NOTICE
     assert saves, "aucun digest sauvegardé"
     # Uniquement dashboard, avec le bandeau dans le contenu
     assert all(c.get("channels") == ["dashboard"] for c in saves)
@@ -88,7 +88,7 @@ def test_pipeline_seed_fallback_blocks_external_channels(monkeypatch, tmp_path):
 def test_pipeline_real_sources_send_external_channels(monkeypatch, tmp_path):
     calls: dict = {}
     saves = _run_pipeline_digest(monkeypatch, calls, "multi")
-    from soukna_graph.nodes.digest import SEED_NOTICE
+    from app.nodes.digest import SEED_NOTICE
     assert saves, "aucun digest sauvegardé"
     channels = saves[-1].get("channels", [])
     assert "whatsapp" in channels and "email" in channels

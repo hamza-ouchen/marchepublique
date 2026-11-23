@@ -48,7 +48,8 @@ def _list(name: str) -> list[str]:
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
+SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY", "")
+                        or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")).strip()
 
 PORTAL_BASE = os.getenv("PORTAL_BASE", "https://www.marchespublics.gov.ma").strip().rstrip("/")
 USER_AGENT = os.getenv(

@@ -38,8 +38,8 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from soukna_graph import config, db
-from soukna_graph.tools import cps_ingest, storage
+from app import config, db
+from app.tools import cps_ingest, storage
 
 AO_BASE = "https://www.aomaroc.com"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; SouknaBot/1.0)",

@@ -85,13 +85,14 @@ def _zip_bytes(entries: dict[str, bytes]) -> bytes:
 
 
 def test_pdfs_from_zip_orders_cps_first():
-    pdf = b"%PDF-1.4 fake" + b"x" * 2048
-    data = _zip_bytes({
-        "Avis FR.pdf": pdf,
-        "RC consultation.pdf": pdf,
-        "CPS principal.pdf": pdf,
-        "ACTE ENGAGEMENT.docx": b"not a pdf",
-    })
+    # Octets distincts par fichier (sinon le dédoublonnage sha256 ne garde
+    # qu'un seul exemplaire).
+    pdfs = {
+        "Avis FR.pdf": b"%PDF-1.4 avis" + b"a" * 2048,
+        "RC consultation.pdf": b"%PDF-1.4 rc" + b"r" * 2048,
+        "CPS principal.pdf": b"%PDF-1.4 cps" + b"c" * 2048,
+    }
+    data = _zip_bytes({**pdfs, "ACTE ENGAGEMENT.docx": b"not a pdf"})
     names = [n for n, _ in sda.pdfs_from_zip(data)]
     assert names == ["CPS principal.pdf", "RC consultation.pdf", "Avis FR.pdf"]
 
@@ -120,8 +121,10 @@ def test_pdfs_from_zip_recurses_nested_zip():
 
 
 def test_pdfs_from_zip_ignores_subdirs():
-    pdf = b"%PDF-1.4" + b"x" * 2048
-    data = _zip_bytes({"sous/rep/CPS x.pdf": pdf, "RACINE.pdf": pdf})
+    data = _zip_bytes({
+        "sous/rep/CPS x.pdf": b"%PDF-1.4 cps" + b"c" * 2048,
+        "RACINE.pdf": b"%PDF-1.4 racine" + b"r" * 2048,
+    })
     names = [n for n, _ in sda.pdfs_from_zip(data)]
     # basename seul (sous-dossiers aplatis) ; CPS en premier (priorité)
     assert names[0] == "CPS x.pdf"
