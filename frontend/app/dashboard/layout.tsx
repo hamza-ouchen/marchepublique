@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ChatWidget from "../chat-widget";
 
 export const metadata: Metadata = {
   title: "Sou9na — Tableau de bord",
@@ -11,5 +12,10 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <ChatWidget />
+    </>
+  );
 }

@@ -26,6 +26,18 @@ class A2AError(Exception):
     """Échec d'appel A2A (carte absente, agent en panne, réponse illisible)."""
 
 
+# Temps morts adaptés au coût réel de chaque étape : la collecte PDF et le
+# flow de scoring sont lents, la composition/distribution sont rapides.
+TIMEOUTS_PAR_SKILL = {
+    "collecte_avis": 1800.0,
+    "collecter_documents": 1800.0,
+    "calculer_match": 900.0,
+    "statuer": 900.0,
+    "composer_digest": 300.0,
+    "distribuer_digests": 300.0,
+}
+
+
 def charger_cartes(chemin: str | None = None) -> dict[str, dict]:
     """Charge toutes les cartes → index par skill_id."""
     dossier = Path(chemin) if chemin else CARTES_DIR
@@ -112,7 +124,12 @@ async def appeler_a2a(skill_id: str, donnees: dict,
                       chemin_cartes: str | None = None) -> dict:
     """Appelle l'agent qui expose `skill_id` (carte → URL → JSON-RPC)."""
     cible = trouver_carte(skill_id, chemin_cartes)
-    timeout = timeout or float(os.environ.get("A2A_TIMEOUT_S", "120"))
+    timeout = timeout or float(os.environ.get(
+        f"A2A_TIMEOUT_{skill_id.upper()}",
+        os.environ.get(f"A2A_TIMEOUT_{skill_id.upper()}_S",
+                       TIMEOUTS_PAR_SKILL.get(skill_id,
+                                              float(os.environ.get("A2A_TIMEOUT_S", "120")))),
+    ))
     payload = {
         "jsonrpc": "2.0",
         "id": str(uuid.uuid4()),
@@ -139,7 +156,8 @@ async def appeler_a2a(skill_id: str, donnees: dict,
         raise A2AError(f"{skill_id} ({cible['agent']}) : HTTP {err.response.status_code} — "
                        f"{err.response.text[:200]}") from err
     except httpx.HTTPError as err:
-        raise A2AError(f"{skill_id} ({cible['agent']}) : agent indisponible — {err}") from err
+        raise A2AError(f"{skill_id} ({cible['agent']}) : agent indisponible — "
+                       f"{type(err).__name__}: {err!r} ({cible['url']})") from err
 
     if "error" in corps:
         raise A2AError(f"{skill_id} ({cible['agent']}) : erreur agent — "

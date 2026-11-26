@@ -161,10 +161,11 @@ async def envoyer_email(
         return {"succes": False, "erreur": str(exc)}
 
     gabarit = obtenir_gabarit(nom_gabarit)
-    # TODO(Ayoub) : remplacer par de vrais textes/sujets par gabarit
-    # (actuellement un texte générique de démonstration).
-    sujet = f"Sou9na — {gabarit.description}"
-    corps_html = "<p>" + " ".join(f"{k}: {v}" for k, v in variables.items()) + "</p>"
+    sujet = variables.get("sujet", f"Sou9na — {gabarit.description}")
+    # Si un corps HTML professionnel est fourni (par distribuer.py), l'utiliser.
+    corps_html = variables.get("corps_html")
+    if not corps_html:
+        corps_html = "<p>" + " ".join(f"{k}: {v}" for k, v in variables.items() if k != "corps_html") + "</p>"
 
     try:
         resultat = await envoyer_template_email(destinataire, sujet, corps_html)

@@ -45,7 +45,7 @@ class Gabarit:
 
 
 # Variables partagées
-_VARS_DIGEST = ("nom_client", "nb_appels_offres", "lien_dashboard")
+_VARS_DIGEST = ("nom_client", "nb_appels_offres", "lien_dashboard", "corps_html", "sujet")
 _VARS_DEADLINE = ("nom_client", "titre_appel_offre", "date_limite")
 _VARS_RAPPORT = ("nom_client", "periode", "nb_appels_offres", "lien_dashboard")
 

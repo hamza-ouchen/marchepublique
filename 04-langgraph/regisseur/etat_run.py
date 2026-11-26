@@ -16,6 +16,9 @@ class EtatRun(TypedDict, total=False):
     run_id: str                       # ex. "run-2026-11-17-cron-ab12cd"
     mode: str                         # cron | manuel | backfill
     date: str                         # "2026-11-17"
+    company_id: str                   # entreprise cible (enveloppe cahier §5.1)
+    request_id: str                   # corrélateur de bout en bout
+    collecte: str                     # auto | full | incremental | none
     demo: bool                        # True = agents simulés (rapports de test)
     message: str                      # entrée libre (chat) — facultatif en pipeline
     etapes: Annotated[list[str], operator.add]   # journal ordonné, fusionné
@@ -27,11 +30,16 @@ class EtatRun(TypedDict, total=False):
     statut: str                       # en_cours | echec | cloture | rejete
 
 
-def nouvel_etat(mode: str, date: str, demo: bool, run_id: str) -> EtatRun:
+def nouvel_etat(mode: str, date: str, demo: bool, run_id: str,
+                company_id: str = "", request_id: str = "",
+                collecte: str = "") -> EtatRun:
     return {
         "run_id": run_id,
         "mode": mode,
         "date": date,
+        "company_id": company_id,
+        "request_id": request_id,
+        "collecte": collecte,
         "demo": demo,
         "etapes": [],
         "rapport": {},

@@ -167,3 +167,10 @@ def valider_limite(limite: int) -> int:
     if not isinstance(limite, int) or limite < 1:
         raise ErreurAcces(f"limite invalide : {limite!r}")
     return min(limite, LIMITE_MAX)
+
+
+def valider_offset(offset: int) -> int:
+    """Décalage pour la pagination des lectures en batch (≥ 0)."""
+    if not isinstance(offset, int) or offset < 0:
+        raise ErreurAcces(f"offset invalide : {offset!r}")
+    return offset

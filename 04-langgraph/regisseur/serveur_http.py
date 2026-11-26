@@ -9,11 +9,18 @@
 from __future__ import annotations
 
 import os
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from a2a_env import charger_env  # noqa: E402
+
+charger_env()
 
 from client_mcp import ClientMCPRegisseur
 from etat_run import nouvel_etat
@@ -37,6 +44,11 @@ async def lifespan(_app_: FastAPI):
 
 
 _app = FastAPI(title="RÉGISSEUR — La Régie", version="1.0.0", lifespan=lifespan)
+
+
+@_app.get("/health")
+def sante() -> dict[str, str]:
+    return {"statut": "ok", "agent": "RÉGISSEUR", "mode_agents": os.getenv("MODE_AGENTS", "demo")}
 
 
 class RequeteA2A(BaseModel):
@@ -82,8 +94,13 @@ async def orchestrer(requete: RequeteA2A, _=Depends(_auth)):
     demo = bool(data.get("demo", False))
     msg = str(data.get("message", "") or "")
     run_id = data.get("run_id") or nouveau_run_id(mode, date or "")
+    company_id = str(data.get("company_id") or "")
+    if not demo and company_id.strip().lower() in ("", "all", "*"):
+        raise HTTPException(status_code=400, detail="company_id requis (un ID précis, pas 'all')")
+    request_id = str(data.get("request_id") or "")
+    collecte = str(data.get("collecte") or "")
 
-    etat = nouvel_etat(mode, date, demo, run_id)
+    etat = nouvel_etat(mode, date, demo, run_id, company_id, request_id, collecte)
     etat["message"] = msg
     if not DATABASE_URL:
         etat["demo"] = True    # pas de base → jamais d'effets de bord réels
@@ -100,6 +117,8 @@ async def orchestrer(requete: RequeteA2A, _=Depends(_auth)):
                         "run_id": etat_final.get("run_id"),
                         "mode": etat_final.get("mode"),
                         "date": etat_final.get("date"),
+                        "company_id": etat_final.get("company_id"),
+                        "request_id": etat_final.get("request_id"),
                         "intention": etat_final.get("intention", "digest"),
                         "gates": etat_final.get("gates", []),
                         "etapes": etat_final.get("etapes", []),

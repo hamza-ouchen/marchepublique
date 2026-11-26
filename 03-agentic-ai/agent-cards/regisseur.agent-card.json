@@ -1,7 +1,7 @@
 {
   "name": "RÉGISSEUR",
   "description": "Superviseur de la chaîne quotidienne : ouvre le run, ordonne les agents, clot le run, journalise tout dans run_logs. Ne touche aucune donnée métier.",
-  "url": "http://localhost:8100",
+  "url": "http://127.0.0.1:8100",
   "version": "1.0.0",
   "provider": { "organization": "Sou9na", "url": "https://sou9na.ma" },
   "capabilities": { "streaming": false, "pushNotifications": false, "stateTransitionHistory": true },

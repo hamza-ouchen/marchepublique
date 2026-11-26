@@ -30,7 +30,8 @@ def _garder_fou(etat: EtatRun, nom: str) -> bool:
 
 def _horaire(nom: str) -> str:
     return {"ouvrir_run": "6h00", "collecter": "6h05",
-            "calculer_scores": "6h20", "statuer": "7h00",
+            "collecter_documents": "6h10", "calculer_scores": "6h25",
+            "statuer": "7h00",
             "composer_digest": "7h30", "distribuer": "8h00",
             "cloturer_run": "18h00"}[nom]
 
@@ -39,7 +40,19 @@ def _trace(etat: EtatRun, nom: str, detail: str) -> dict:
     return {"etapes": [f"{_horaire(nom)} {nom} : {detail}"]}
 
 
-# ── Points d'appel agents (brancher les vrais agents ici) ──────────
+# ── Points d'appel agents (A2A : carte -> URL -> message/send) ─────
+def _enveloppe(etat: EtatRun) -> dict:
+    """Enveloppe commune cahier §5.1, propagée à tous les agents."""
+    return {
+        "date": etat.get("date", ""),
+        "company_id": etat.get("company_id", ""),
+        "request_id": etat.get("request_id", ""),
+        "run_id": etat.get("run_id", ""),
+        "source": "cron" if etat.get("mode") == "cron" else etat.get("mode", ""),
+        "collecte": etat.get("collecte", ""),
+    }
+
+
 async def APPEL_INSPECTEUR(etat: EtatRun) -> dict:
     """INSPECTEUR collecte → tenders. Rapport attendu :
     {avis_nouveaux, doublons, rejetes, source}."""
@@ -47,14 +60,22 @@ async def APPEL_INSPECTEUR(etat: EtatRun) -> dict:
         return {"avis_nouveaux": 135, "doublons": 0, "rejetes": 3,
                 "source": "demo" if etat["mode"] != "backfill" else "backfill-demo"}
     mode = {"cron": "portail", "manuel": "portail", "backfill": "backfill"}[etat["mode"]]
-    return await appeler_a2a("collecte_avis", {"mode": mode, "date": etat["date"]})
+    return await appeler_a2a("collecte_avis", _enveloppe(etat) | {"mode": mode})
+
+
+async def APPEL_INSPECTEUR_DOCUMENTS(etat: EtatRun) -> dict:
+    """INSPECTEUR (6h10) : PDF/documents AVANT le scoring, pour enrichir la preuve."""
+    if etat["demo"]:
+        return {"documents_ingerees": 12, "documents_annonces": 20,
+                "source_documents": "demo"}
+    return await appeler_a2a("collecter_documents", _enveloppe(etat))
 
 
 async def APPEL_COMPAGNON_SCORES(etat: EtatRun) -> dict:
     """COMPAGNON (1er passage) : Match /100 → scores."""
     if etat["demo"]:
         return {"scores_ecrits": 132, "algo_version": "1.0.0-demo"}
-    return await appeler_a2a("calculer_match", {"date": etat["date"]})
+    return await appeler_a2a("calculer_match", _enveloppe(etat))
 
 
 async def APPEL_JUGE(etat: EtatRun) -> dict:
@@ -62,14 +83,14 @@ async def APPEL_JUGE(etat: EtatRun) -> dict:
     if etat["demo"]:
         return {"verdicts_ecrits": 41, "go": 22, "a_etudier": 9, "no_go": 10,
                 "seuil": 75}
-    return await appeler_a2a("statuer", {"date": etat["date"], "seuil": 75})
+    return await appeler_a2a("statuer", _enveloppe(etat) | {"seuil": 75})
 
 
 async def APPEL_COMPAGNON_DIGEST(etat: EtatRun) -> dict:
     """COMPAGNON (2e passage) : compose les digests (FR+AR), n'envoie pas."""
     if etat["demo"]:
         return {"digests_composes": 24, "bandeau": "essai jour 1 sur 14"}
-    return await appeler_a2a("composer_digest", {"date": etat["date"]})
+    return await appeler_a2a("composer_digest", _enveloppe(etat))
 
 
 async def APPEL_COMPAGNON_DISTRIBUTION(etat: EtatRun) -> dict:
@@ -77,7 +98,7 @@ async def APPEL_COMPAGNON_DISTRIBUTION(etat: EtatRun) -> dict:
     if etat["demo"]:
         return {"envois_whatsapp": 18, "envois_email": 6,
                 "hitl_declenches": 2, "statut_envoi": "envoye"}
-    return await appeler_a2a("distribuer_digests", {"date": etat["date"]})
+    return await appeler_a2a("distribuer_digests", _enveloppe(etat))
 
 
 # ── Nœuds du graphe ────────────────────────────────────────────────
@@ -123,6 +144,23 @@ async def calculer_scores(etat: EtatRun, client) -> dict:
                 | {"rapport": {"compagnon_scores": rapport}})
     except Exception as err:                                   # noqa: BLE001
         return {"etapes": ["6h20 calculer_scores : ÉCHEC"], "erreurs": [str(err)]}
+
+
+async def collecter_documents(etat: EtatRun, client) -> dict:
+    """INSPECTEUR — collecte et enrichissement avant scoring."""
+    if _garder_fou(etat, "collecter_documents"):
+        return {"etapes": ["6h35 collecter_documents : SAUTÉ (erreur amont)"]}
+    try:
+        rapport = await APPEL_INSPECTEUR_DOCUMENTS(etat)
+        return (_trace(etat, "collecter_documents",
+                       f"{rapport.get('documents_ingerees')} PDF ingérés "
+                       f"sur {rapport.get('documents_annonces')} annonces, "
+                       f"{rapport.get('annonces_enrichies', 0)} annonces révisées, "
+                       f"{rapport.get('documents_retry_scheduled', 0)} à retenter")
+                | {"rapport": {"inspecteur_documents": rapport}})
+    except Exception as err:                                   # noqa: BLE001
+        return (_trace(etat, "collecter_documents", f"ÉCHEC — {err}")
+                | {"erreurs": [str(err)], "rapport": {"inspecteur_documents": {"erreur": str(err)}}})
 
 
 async def statuer(etat: EtatRun, client) -> dict:

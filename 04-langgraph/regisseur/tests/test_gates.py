@@ -108,7 +108,7 @@ def test_graphe_passe_les_gates_et_cloture():
     assert any("valider_entree: OK" in g for g in etat["gates"])
     assert all("SAUTÉ" not in e for e in etat["etapes"])   # rien n'a sauté
     order = [e.split()[0] for e in etat["etapes"]]
-    assert order == ["6h00", "6h05", "6h20", "7h00", "7h30", "8h00", "18h00"]
+    assert order == ["6h00", "6h05", "6h10", "6h25", "7h00", "7h30", "8h00", "18h00"]
 
 
 def test_graphe_injection_rejetee_avant_tout_agent():

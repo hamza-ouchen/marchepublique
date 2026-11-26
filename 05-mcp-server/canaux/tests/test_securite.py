@@ -34,7 +34,8 @@ def test_gabarit_variables_manquantes_rejete():
 def test_gabarit_variables_completes_ok():
     verifier_gabarit(
         "digest",
-        {"nom_client": "Ahmed", "nb_appels_offres": "3", "lien_dashboard": "https://..."},
+        {"nom_client": "Ahmed", "nb_appels_offres": "3", "lien_dashboard": "https://...",
+         "sujet": "Appels d'offres du jour", "corps_html": "<p>Bonjour Ahmed</p>"},
     )  # ne doit pas lever d'exception
 
 

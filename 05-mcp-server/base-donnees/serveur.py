@@ -6,10 +6,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
+from typing import Annotated, Any
 
 import psycopg
+from pydantic import BaseModel, BeforeValidator, ConfigDict
 from mcp.server.auth.provider import AccessToken
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
@@ -22,6 +25,7 @@ from securite import (
     valider_appelant,
     valider_colonnes,
     valider_limite,
+    valider_offset,
     valider_table,
 )
 
@@ -121,15 +125,18 @@ def lire(
     filtres: dict | None = None,
     limite: int = 500,
     ordre: str | None = None,
+    offset: int = 0,
 ) -> dict:
     """Lit des lignes d'une table autorisée — en batch, plafonné à 1000.
 
     filtres : {"colonne": valeur} (égalité) — colonne vérifiée contre la
     liste blanche. ordre : "colonne" ou "colonne desc".
+    offset : décalage pour parcourir un jeu de données > 1000 lignes.
     """
     try:
         defs = valider_table(table, appelant, "lit")
         limite = valider_limite(limite)
+        offset = valider_offset(offset)
         filtres = filtres or {}
         valider_colonnes(table, set(filtres), "filtre de lecture")
 
@@ -148,7 +155,8 @@ def lire(
 
         sql = (
             f'SELECT {_sens_sql(table, defs)} FROM "{table}"'
-            f"{(' WHERE ' + where_sql) if where_sql else ''}{order_sql} LIMIT {limite}"
+            f"{(' WHERE ' + where_sql) if where_sql else ''}{order_sql} "
+            f"LIMIT {limite} OFFSET {offset}"
         )
         with connexion() as cnx, cnx.cursor() as cur:
             cur.execute(sql, params)
@@ -162,17 +170,88 @@ def lire(
 # ─────────────────────────────────────────────────────────────────
 # Outil 2 : ecrire(table, lignes, si_doublon, appelant)
 # ─────────────────────────────────────────────────────────────────
+class LigneEcriture(BaseModel):
+    """Ligne d'écriture générique.
+
+    Les colonnes de ``scores`` sont déclarées explicitement afin que les
+    clients LLM (Langflow/MCP) voient un schéma d'objet complet au lieu
+    d'un ``object`` sans propriétés (qui les amenait à envoyer ``{}``).
+    ``extra="allow"`` conserve les colonnes propres aux autres tables.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    company_id: str | None = None
+    reference: str | None = None
+    match_total: int | None = None
+    composantes: Annotated[Any, BeforeValidator(_parse_dict)] = None
+    points_perdus: Annotated[Any, BeforeValidator(_parse_list)] = None
+    algo_version: str | None = None
+
+
+def _parse_dict(v):
+    """Accepte un dict ou son encodage JSON en chaîne (tolérance LLM)."""
+    if isinstance(v, str):
+        try:
+            return json.loads(v)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"composantes : JSON invalide ({e})") from e
+    return v
+
+
+def _parse_list(v):
+    """Accepte une liste ou son encodage JSON en chaîne (tolérance LLM)."""
+    if isinstance(v, str):
+        try:
+            return json.loads(v)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"points_perdus : JSON invalide ({e})") from e
+    return v
+
+
+def _parse_lignes(v):
+    """Accepte une liste d'objets ou son encodage JSON en chaîne."""
+    if isinstance(v, str):
+        try:
+            return json.loads(v)
+        except ValueError as e:
+            raise ValueError(f"lignes : JSON invalide ({e})") from e
+    return v
+
+
+Lignes = Annotated[list[LigneEcriture], BeforeValidator(_parse_lignes)]
+
+
 @mcp.tool()
 def ecrire(
     table: str,
-    lignes: list[dict],
+    lignes: Lignes,
     appelant: str,
     si_doublon: str = "ignorer",
 ) -> dict:
     """Écrit des lignes (idempotence N7). si_doublon : "ignorer" (défaut)
     ou "mettre_a_jour" (upsert, réservé à run_logs).
+    lignes : liste d'objets, ou tableau JSON sérialisé en chaîne
+    (tolérance LLM — désérialisé automatiquement).
     """
     try:
+        lignes = [
+            ligne.model_dump(exclude_none=True) if isinstance(ligne, LigneEcriture) else ligne
+            for ligne in lignes
+        ]
+        # Journal de diagnostic : que reçoit vraiment l'outil ?
+        try:
+            import time as _time
+            with open(Path(__file__).parent / "_ecrire_calls.log", "a", encoding="utf-8") as _f:
+                _f.write(json.dumps({
+                    "t": _time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "table": table,
+                    "appelant": appelant,
+                    "lignes_type": type(lignes).__name__,
+                    "lignes_head": str(lignes)[:400],
+                }, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
         defs = valider_table(table, appelant, "ecrit")
         if si_doublon not in ("ignorer", "mettre_a_jour"):
             raise ErreurAcces(f"si_doublon invalide : {si_doublon!r}")
@@ -203,10 +282,17 @@ def ecrire(
             conflit = ""
 
         sql = f'INSERT INTO "{table}" ({noms_sql}) VALUES ({placeholders}) {conflit}'.strip()
+
+        def _valeur_sql(valeur):
+            """psycopg3 n'adapte pas dict/list vers jsonb : sérialisation explicite."""
+            if isinstance(valeur, (dict, list)):
+                return json.dumps(valeur, ensure_ascii=False)
+            return valeur
+
         ecrites, ignorees = 0, 0
         with connexion() as cnx, cnx.cursor() as cur:
             for ligne in lignes:
-                cur.execute(sql, [ligne.get(c) for c in ordre_colonnes])
+                cur.execute(sql, [_valeur_sql(ligne.get(c)) for c in ordre_colonnes])
                 if cur.rowcount:
                     ecrites += cur.rowcount
                 else:

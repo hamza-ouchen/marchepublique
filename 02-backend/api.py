@@ -9,9 +9,12 @@ import base64
 import hashlib
 import hmac
 import json
+import os
+import sys
 import time
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
@@ -24,6 +27,11 @@ from starlette.requests import Request
 from app import config, db, monitoring
 from app.graph import build_graph
 from app.tools import emailer, seed_data, whatsapp
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "04-langgraph" / "inspecteur"))
+
+from dashboard_api import routeur as dashboard_router
+from daily_jobs import enqueue, list_companies as list_daily_companies
 
 app = FastAPI(title="Soukna Workflow API", version="1.1.0")
 
@@ -44,6 +52,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(dashboard_router)
 
 GRAPH = build_graph()
 
@@ -471,24 +481,45 @@ async def _pipeline_background_task() -> None:
         keepalive.cancel()
 
 
-@app.post("/cron/run")
-async def cron_run_pipeline(request: Request) -> dict[str, Any]:
-    """Déclencheur du cron externe (cron-job.org) : statique, sans TTL.
-
-    - Header `X-Cron-Secret` (comparaison à temps constant).
-    - CRON_SECRET vide en config => 503 (endpoint désactivé).
-    - Répond IMMÉDIATEMENT (~<1 s) et exécute le pipeline en tâche de
-      fond : le timeout 30 s de cron-job.org ne coupe plus le run.
-    """
-    if not config.CRON_SECRET:
+def require_cron_secret(request: Request) -> None:
+    secret = os.getenv("CRON_SECRET")
+    if not secret:
         raise HTTPException(503, "CRON_SECRET non configuré")
     provided = request.headers.get("X-Cron-Secret", "")
-    if not hmac.compare_digest(provided, config.CRON_SECRET):
+    if not hmac.compare_digest(provided.encode(), secret.encode()):
         raise HTTPException(403, "secret cron invalide")
-    # Pas de BackgroundTasks : on crée la tâche explicitement pour que
-    # le keep-alive survive indépendamment du cycle requête/réponse.
-    asyncio.get_running_loop().create_task(_pipeline_background_task())
-    return {"started": True, "mode": "cron"}
+
+
+@app.post("/cron/run", status_code=202)
+def cron_run(request: Request,
+             mode: str = Query("auto", pattern="^(auto|full|incremental|none)$"),
+             company: str | None = Query(None, description="ID précis, ou 'all' pour toute l'entreprise"),
+             batch_size: int | None = Query(None, ge=1, le=5000),
+             offset: int = Query(0, ge=0)) -> dict[str, Any]:
+    require_cron_secret(request)
+    selection = (company or os.getenv("SOU9NA_CRON_COMPANY", "all")).strip()
+    taille = batch_size or int(os.getenv("SOU9NA_BATCH_SIZE", "1000"))
+
+    if selection.lower() in ("", "all", "*"):
+        companies = list_daily_companies(limit=taille, offset=offset)
+        if not companies:
+            raise HTTPException(404, "aucune entreprise éligible (SOU9NA_COMPANY_STATUSES)")
+        # Une seule collecte du portail par batch : les autres runs réutilisent
+        # les avis déjà en base (collecte=none) mais scoring + JUGE par société.
+        jobs = [enqueue(c, mode, "auto" if i == 0 else "none")
+                for i, c in enumerate(companies)]
+        return {
+            "count": len(jobs),
+            "companies": companies,
+            "jobs": jobs,
+            "batch_size": taille,
+            "offset": offset,
+            "has_more": len(companies) == taille,
+        }
+
+    job = enqueue(selection, mode, "auto")
+    return {"count": 1, "companies": [selection], "jobs": [job],
+            "batch_size": taille, "offset": offset, "has_more": False}
 
 
 async def _scrape_background_task(db_url: str | None = None, max_pages: int = 622,

@@ -1,8 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════
 # SOU9NA — RÉGISSEUR · le graphe LangGraph (chaîne du matin, CAS A)
 #
-#   START → ouvrir_run → collecter → calculer_scores → statuer
-#         → composer_digest → distribuer → cloturer_run → END
+#   START → ouvrir_run → collecter → collecter_documents → calculer_scores
+#         → statuer → composer_digest → distribuer → cloturer_run → END
 #
 # Le client MCP est injecté à la construction (réel ou double de test) —
 # les nœuds, eux, ne changent jamais.
@@ -41,6 +41,7 @@ def construire_graphe(client):
     g.add_node("ouvrir_run",      _lier(noeuds.ouvrir_run, client))
     g.add_node("collecter",       _lier(noeuds.collecter, client))
     g.add_node("calculer_scores", _lier(noeuds.calculer_scores, client))
+    g.add_node("collecter_documents", _lier(noeuds.collecter_documents, client))
     g.add_node("statuer",         _lier(noeuds.statuer, client))
     g.add_node("composer_digest", _lier(noeuds.composer_digest, client))
     g.add_node("distribuer",      _lier(noeuds.distribuer, client))
@@ -56,7 +57,8 @@ def construire_graphe(client):
     )
     g.add_edge("rejet_gate", END)
     g.add_edge("ouvrir_run", "collecter")
-    g.add_edge("collecter", "calculer_scores")
+    g.add_edge("collecter", "collecter_documents")
+    g.add_edge("collecter_documents", "calculer_scores")
     g.add_edge("calculer_scores", "statuer")
     g.add_edge("statuer", "composer_digest")
     g.add_edge("composer_digest", "distribuer")

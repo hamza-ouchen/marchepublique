@@ -20,11 +20,13 @@ from graphe import construire_graphe
 from noeuds import nouveau_run_id
 
 
-async def executer(mode: str, date: str, demo: bool) -> dict:
+async def executer(mode: str, date: str, demo: bool,
+                   company: str = "", collecte: str = "") -> dict:
     client = ClientMCPRegisseur()
     if demo:
         client.database_url = ""                      # forcer le mode mémoire
-    etat_initial = nouvel_etat(mode, date, demo, nouveau_run_id(mode, date))
+    etat_initial = nouvel_etat(mode, date, demo, nouveau_run_id(mode, date),
+                               company, collecte=collecte)
     app = construire_graphe(client)
     etat_final = await app.ainvoke(etat_initial)
     return dict(etat_final)
@@ -34,15 +36,22 @@ def principal() -> int:
     parser = argparse.ArgumentParser(description="RÉGISSEUR — run quotidien / manuel / backfill")
     parser.add_argument("--mode", choices=["cron", "manuel", "backfill"], default="cron")
     parser.add_argument("--date", default=dt.date.today().isoformat())
+    parser.add_argument("--company", default="", help="ID entreprise (obligatoire en mode réel)")
+    parser.add_argument("--collecte", default="", choices=["", "auto", "full",
+                                                           "incremental", "none"])
     parser.add_argument("--demo", action="store_true",
                         help="rapports simulés, écritures en mémoire (tests)")
     args = parser.parse_args()
 
     demo = args.demo or os.environ.get("MODE_AGENTS", "reel") == "demo"
+    if not demo and not args.company:
+        print("--company est obligatoire en mode réel", file=sys.stderr)
+        return 2
     if not demo:
         print("Mode reel : les agents seront appelés via A2A "
               "(cartes dans 03-agentic-ai/agent-cards/).")
-    etat = asyncio.run(executer(args.mode, args.date, demo))
+    etat = asyncio.run(executer(args.mode, args.date, demo,
+                                args.company, args.collecte))
 
     print("─" * 60)
     print(f"Run {etat['run_id']} → statut : {etat['statut'].upper()}")

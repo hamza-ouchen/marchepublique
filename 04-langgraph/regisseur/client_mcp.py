@@ -3,7 +3,7 @@
 # Deux modes :
 #   LOCAL (défaut) : sous-processus stdio (base-donnees/serveur.py)
 #   DISTANT : variables MCP_BASE_DONNEES_URL + MCP_AUTH_TOKEN
-#             (StreamableHTTP, « Authorization: Bearer <token> »)
+#             (StreamableHTTP, clé dans « X-API-Key » — R7, jamais Bearer)
 # Si DATABASE_URL est absent → mode « mémoire » (tests, CI).
 # ═══════════════════════════════════════════════════════════════════
 
