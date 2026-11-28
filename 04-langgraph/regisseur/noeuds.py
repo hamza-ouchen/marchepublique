@@ -14,13 +14,110 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
+import sys
 import uuid
+from pathlib import Path
 
-from a2a_client import appeler_a2a
-from etat_run import EtatRun
+_RACINE = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_RACINE / "03-agentic-ai" / "compagnon"))
+
+from a2a_client import appeler_a2a  # noqa: E402
+from etat_run import EtatRun  # noqa: E402
+import agentic_flow  # noqa: E402
 
 MODE_AGENTS = os.environ.get("MODE_AGENTS", "demo")
+
+
+def _agentic_d_abord() -> bool:
+    """1 = les flows Agentic sont tentés avant les agents LangGraph/A2A."""
+    return os.getenv("SOU9NA_AGENTIC_FIRST", "0").lower() in ("1", "true", "oui", "yes")
+
+
+def _agentic_timeout() -> int:
+    try:
+        return int(os.getenv("SOU9NA_AGENTIC_TIMEOUT", "900"))
+    except ValueError:
+        return 900
+
+
+def _json_depuis(texte: str) -> dict | None:
+    """Extrait le premier objet JSON d'une réponse Agentic (texte ou brut)."""
+    if not texte:
+        return None
+    for position, caractere in enumerate(texte):
+        if caractere != "{":
+            continue
+        try:
+            objet, _ = json.JSONDecoder().raw_decode(texte[position:])
+        except ValueError:
+            continue
+        if isinstance(objet, dict):
+            return objet
+    return None
+
+
+def _scores_complets(rapport: dict | None) -> bool:
+    """Le JUGE ne démarre que si le lot de scores est complet.
+
+    `tenders_lus` compte toutes les annonces de la journée ; `scores_calcules`
+    ne compte que celles retenues par la règle de matching. On ne peut donc pas
+    exiger calcules >= lus. Un même run rejoué peut aussi écrire 0 nouveau
+    score (idempotence) tout en ayant recalculé un lot valide.
+    """
+    if not rapport:
+        return False
+    if rapport.get("partiel") is True or rapport.get("statut") == "partiel":
+        return False
+    if rapport.get("erreur"):
+        return False
+    try:
+        calcules = int(rapport.get("scores_calcules") or rapport.get("scores_ecrits") or 0)
+    except (TypeError, ValueError):
+        return False
+    return calcules > 0
+
+
+_CLES_CONTROLE = ("caution_vs_capacite", "ice_attestations",
+                  "qualifications", "delai_atteignable")
+_STATUTS_CONTROLE = ("ok", "risque", "ko", "inconnu")
+_VERDITS = ("GO", "A_ETUDIER", "NO_GO")
+
+
+def _verdicts_complets(rapport: dict | None) -> bool:
+    """N'accepte un lot Agentic que s'il est structuré et exploitable.
+
+    Le flow JUGE hébergé fait aujourd'hui une revue sans publication : ce
+    garde-fou évite de prendre un simple compte rendu pour des verdicts écrits.
+    """
+    if not rapport:
+        return False
+    try:
+        ecrits = int(rapport.get("verdicts_ecrits") or 0)
+    except (TypeError, ValueError):
+        return False
+    verdicts = rapport.get("verdicts")
+    if ecrits <= 0 or not isinstance(verdicts, list) or not verdicts:
+        return False
+    for verdict in verdicts:
+        if not isinstance(verdict, dict):
+            return False
+        if verdict.get("verdict") not in _VERDITS:
+            return False
+        controles = verdict.get("controles")
+        if not isinstance(controles, dict):
+            return False
+        if any(controles.get(cle) not in _STATUTS_CONTROLE
+               for cle in _CLES_CONTROLE):
+            return False
+        if not verdict.get("justifications"):
+            return False
+        if (verdict["verdict"] == "A_ETUDIER"
+                and len(verdict.get("risques_a_verifier") or []) < 3):
+            return False
+    return True
 
 
 def _garder_fou(etat: EtatRun, nom: str) -> bool:
@@ -72,18 +169,86 @@ async def APPEL_INSPECTEUR_DOCUMENTS(etat: EtatRun) -> dict:
 
 
 async def APPEL_COMPAGNON_SCORES(etat: EtatRun) -> dict:
-    """COMPAGNON (1er passage) : Match /100 → scores."""
+    """Calcule les scores via le service COMPAGNON A2A."""
     if etat["demo"]:
         return {"scores_ecrits": 132, "algo_version": "1.0.0-demo"}
     return await appeler_a2a("calculer_match", _enveloppe(etat))
 
 
+async def _appel_compagnon_scores_agentic_legacy(etat: EtatRun) -> dict:
+    """COMPAGNON (1er passage) : Match /100 → scores.
+
+    Agentic d'abord (SOU9NA_AGENTIC_FIRST=1) ; repli A2A/LangGraph sur
+    timeout, erreur HTTP ou réponse sans score calculé. Un run idempotent
+    peut écrire 0 nouveau score tout en ayant recalculé un lot valide.
+    """
+    if etat["demo"]:
+        return {"scores_ecrits": 132, "algo_version": "1.0.0-demo"}
+    detail = "flow Agentic non tenté"
+    if _agentic_d_abord():
+        try:
+            ok, detail = await asyncio.to_thread(
+                agentic_flow.run_compagnon,
+                etat["company_id"],
+                etat["date"],
+                _agentic_timeout(),
+            )
+            rapport = _json_depuis(detail) if ok else None
+            if _scores_complets(rapport):
+                rapport.setdefault("source", "flow_compagnon")
+                return rapport
+        except Exception as err:                               # noqa: BLE001
+            detail = f"{type(err).__name__}: {err}"
+    rapport = await appeler_a2a("calculer_match", _enveloppe(etat))
+    rapport["source_initial"] = rapport.get("source")
+    rapport["source"] = "langgraph_a2a_fallback"
+    rapport["detail_agentic"] = detail[:600]
+    return rapport
+
+
 async def APPEL_JUGE(etat: EtatRun) -> dict:
-    """JUGE : verdicts sur les scores au-dessus du seuil (~75)."""
+    """Calcule les verdicts via le service JUGE LangGraph/A2A."""
     if etat["demo"]:
         return {"verdicts_ecrits": 41, "go": 22, "a_etudier": 9, "no_go": 10,
                 "seuil": 75}
     return await appeler_a2a("statuer", _enveloppe(etat) | {"seuil": 75})
+
+
+async def _appel_juge_agentic_legacy(etat: EtatRun) -> dict:
+    """JUGE : verdicts sur les scores au-dessus du seuil (~75).
+
+    Le flow Agentic JUGE fait la revue documentaire contrainte en premier.
+    S'il n'écrit pas lui-même les verdicts (workflowJugeVf = publication
+    bloquée), l'agent JUGE LangGraph prend le relais et persiste les verdicts.
+    """
+    if etat["demo"]:
+        return {"verdicts_ecrits": 41, "go": 22, "a_etudier": 9, "no_go": 10,
+                "seuil": 75}
+    revue = ""
+    detail = "flow Agentic JUGE non tenté"
+    if _agentic_d_abord():
+        try:
+            ok, detail = await asyncio.to_thread(
+                agentic_flow.run_juge_flow,
+                etat["date"],
+                etat["company_id"],
+                _agentic_timeout(),
+            )
+            rapport = _json_depuis(detail) if ok else None
+            if rapport and _verdicts_complets(rapport):
+                rapport.setdefault("source", "flow_juge")
+                return rapport
+            if ok:
+                revue = detail
+        except Exception as err:                               # noqa: BLE001
+            detail = f"{type(err).__name__}: {err}"
+    rapport = await appeler_a2a("statuer", _enveloppe(etat) | {"seuil": 75})
+    rapport["source_initial"] = rapport.get("source")
+    rapport["source"] = "langgraph_a2a_fallback"
+    rapport["detail_agentic"] = detail[:600]
+    if revue:
+        rapport["revision_agentic"] = revue[:1200]
+    return rapport
 
 
 async def APPEL_COMPAGNON_DIGEST(etat: EtatRun) -> dict:

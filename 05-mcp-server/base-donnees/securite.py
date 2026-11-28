@@ -114,8 +114,8 @@ PERIMETRES: dict[str, dict[str, set[str]]] = {
                     "ecrit": {"scores", "digests"}},
     "JUGE":        {"lit": {"tenders", "entreprises", "scores"},
                     "ecrit": {"verdicts"}},
-    "CONCIERGE":   {"lit": {"entreprises", "utilisateurs", "scores", "verdicts",
-                            "messages", "digests", "prospects"},
+    "CONCIERGE":   {"lit": {"entreprises", "utilisateurs", "tenders", "scores",
+                            "verdicts", "messages", "digests", "prospects"},
                     "ecrit": {"messages", "feedback", "digests", "notifications"}},
     "SENTINELLE":  {"lit": {"tenders"},           "ecrit": set()},  # alertes_sentinelle = P2
     # Le backend FastAPI gère la couche plateforme (utilisateurs, abonnements,

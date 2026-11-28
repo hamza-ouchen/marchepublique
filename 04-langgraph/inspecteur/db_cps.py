@@ -146,7 +146,8 @@ def save_document_version(document_sections, **fields):
     columns = ", ".join(fields)
     values = ", ".join(["%s"] * len(fields))
     updates = ", ".join(
-        f"{column} = EXCLUDED.{column}" for column in fields
+        ("storage_path = COALESCE(EXCLUDED.storage_path, tender_documents.storage_path)"
+         if column == "storage_path" else f"{column} = EXCLUDED.{column}") for column in fields
         if column not in ("reference", "sha256")
     )
     with closing(connect()) as conn:
@@ -165,11 +166,11 @@ def save_document_version(document_sections, **fields):
                         (fields["reference"], fields["sha256"]),
                     ).fetchone()
                 document_id = document["id"]
-                conn.execute("DELETE FROM cps_sections WHERE document_id = %s", (document_id,))
+                conn.execute("DELETE FROM cps_sections WHERE document_id = %s AND COALESCE(to_jsonb(cps_sections)->'legacy_sections','[]'::jsonb) = '[]'::jsonb", (document_id,))
                 with conn.cursor() as cursor:
                     cursor.executemany(
                         "INSERT INTO cps_sections (document_id, section_no, numero, titre, texte, pages_section) "
-                        "VALUES (%s,%s,%s,%s,%s,%s)",
+                        "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (document_id, section_no) DO NOTHING",
                         [(document_id, s["section_no"], s.get("numero"), s.get("titre"),
                           s["texte"], s.get("pages_section")) for s in document_sections],
                     )
@@ -206,11 +207,11 @@ def tender_document_mark_ready(doc_id):
 
 
 def cps_sections_replace(document_id, sections):
-    execute("DELETE FROM cps_sections WHERE document_id = %s", (document_id,))
+    execute("DELETE FROM cps_sections WHERE document_id = %s AND COALESCE(to_jsonb(cps_sections)->'legacy_sections','[]'::jsonb) = '[]'::jsonb", (document_id,))
     n = 0
     for s in sections:
         execute("INSERT INTO cps_sections (document_id, section_no, numero, titre, texte, pages_section) "
-                "VALUES (%s,%s,%s,%s,%s,%s)",
+                "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (document_id, section_no) DO NOTHING",
                 (document_id, s["section_no"], s.get("numero"), s.get("titre"),
                  s["texte"], s.get("pages_section")))
         n += 1

@@ -1170,7 +1170,7 @@ export default function AdminPage() {
   );
 
   if (!loaded) {
-    return <main className="page container"><p className="subtitle">{t("loading")}</p></main>;
+    return <BrandLoader label={t("loading")} />;
   }
 
   return (

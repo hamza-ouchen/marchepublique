@@ -103,8 +103,15 @@ La **distribution 8h00** est faite par CONCIERGE (unique émetteur).
 { "verdict": "GO",
   "controles": { "caution_vs_capacite": "ok", "ice_attestations": "ok",
                  "qualifications": "ok", "delai_atteignable": "ok" },
-  "justification": "capacité suffisante — décret 2-22-431, art. 12" }
+  "justifications": [ { "constat": "capacité suffisante",
+                        "reference": "décret 2-22-431, art. 12" } ],
+  "risques_a_verifier": [] }
 ```
+
+Une valeur absente, nulle ou vide donne `inconnu` — jamais `ok`. Un `inconnu` ou un
+`risque` empêche le GO ; un `ko` (ou un score < 45) donne NO_GO ; sinon le verdict est
+A_ETUDIER avec au moins 3 risques. GO exige 4 contrôles `ok`, score ≥ 75, confiance
+`eleve` et un document exploitable.
 
 **Version lot (run du matin)** — le JUGE traite la liste des offres retenues par le score
 et renvoie un **tableau** : un objet de ce type par offre. `risques_a_verifier` (≥ 3)

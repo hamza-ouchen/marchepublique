@@ -26,7 +26,8 @@ def ingest_cps(reference: str, pdf_bytes: bytes, *,
                filename: str | None = None,
                storage_path: str | None = None,
                storage_uploader: Callable[[str, bytes], str] | None = None,
-               request_id: str | None = None) -> dict[str, Any]:
+               request_id: str | None = None,
+               extraction_result: dict[str, Any] | None = None) -> dict[str, Any]:
     """Ingère un CPS (PDF) pour un tender.
 
     Retourne un dict {status, document_id, sections, char_count, ...}.
@@ -39,7 +40,7 @@ def ingest_cps(reference: str, pdf_bytes: bytes, *,
     digest = hashlib.sha256(pdf_bytes).hexdigest()
     existing = db.tender_document_by_hash(reference, digest)
     if existing and existing["statut"] in ("extracted", "ready") and (
-        storage_uploader is None or existing["storage_path"].startswith("versions/")
+        storage_uploader is None or (existing.get("storage_path") or "").startswith("versions/")
     ):
         return {"status": "skipped", "reason": "already_ingested",
                 "document_id": existing["id"],
@@ -47,15 +48,17 @@ def ingest_cps(reference: str, pdf_bytes: bytes, *,
                 "char_count": existing.get("char_count") or 0}
 
     # 3) Extraction
-    info = cps_extract.extract_text(pdf_bytes)
+    info = cps_extract.extract_text(pdf_bytes) if extraction_result is None else extraction_result
+    if info["sha256"] != digest:
+        raise ValueError("Extraction result does not match the PDF")
     signaux = cps_extract.extract_detail(info["text"], filename or "")
     if info["pages"] and info["pages"] > MAX_PAGES:
         return {"status": "skipped", "reason": "too_many_pages",
                 "pages": info["pages"]}
 
     # 4) Stockage (optionnel)
-    if storage_path is None:
-        storage_path = f"versions/{digest}.pdf" if storage_uploader else f"{reference}/{filename or 'cps.pdf'}"
+    if storage_path is None and storage_uploader is not None:
+        storage_path = f"versions/{digest}.pdf"
     existing_upload = existing and existing["statut"] in ("stored", "echec") and (
         existing["storage_path"] == storage_path == f"versions/{digest}.pdf"
         and existing.get("storage_bucket", "cps-originaux") == "cps-originaux"

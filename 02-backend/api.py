@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -13,7 +14,7 @@ import os
 import sys
 import time
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +22,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.requests import Request
 
 from app import config, db, monitoring
@@ -31,7 +32,8 @@ from app.tools import emailer, seed_data, whatsapp
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "04-langgraph" / "inspecteur"))
 
 from dashboard_api import routeur as dashboard_router
-from daily_jobs import enqueue, list_companies as list_daily_companies
+from daily_jobs import enqueue, list_companies as list_daily_companies, mark_init
+from immediate_pipeline import calculer_maintenant
 
 app = FastAPI(title="Soukna Workflow API", version="1.1.0")
 
@@ -62,7 +64,7 @@ GRAPH = build_graph()
 def startup() -> None:
     try:
         db.init_db()
-        # Référentiel secteurs (18) : seed idempotent à chaque démarrage.
+        # Référentiel secteurs : seed idempotent à chaque démarrage.
         n_secteurs = db.sectors_ensure(seed_data.SECTORS)
         print(f"[soukna] secteurs référentiel OK ({n_secteurs})")
         # Source historique : enregistrée dans le registre si la table
@@ -147,6 +149,25 @@ def _hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+def _hash_new_password(password: str) -> str:
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 600_000)
+    return f"pbkdf2_sha256${salt.hex()}${digest.hex()}"
+
+
+def _password_matches(password: str, encoded: str | None) -> bool:
+    if not encoded:
+        return False
+    if not encoded.startswith("pbkdf2_sha256$"):
+        return hmac.compare_digest(encoded, _hash_password(password))
+    try:
+        _, salt, digest = encoded.split("$")
+        expected = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 600_000)
+        return hmac.compare_digest(expected.hex(), digest)
+    except ValueError:
+        return False
+
+
 def _public_company(company: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in company.items() if k != "password_hash"}
 
@@ -204,6 +225,11 @@ class WaitlistNoteBody(BaseModel):
     admin_note: str
 
 
+class CompanyPDF(BaseModel):
+    filename: str = Field(min_length=1, max_length=180)
+    content_base64: str = Field(max_length=2_796_204)
+
+
 class OnboardingBody(BaseModel):
     password: str
     company_name: str
@@ -217,6 +243,7 @@ class OnboardingBody(BaseModel):
     budget_min: float | None = None
     budget_max: float | None = None
     certifications: list[str] = []
+    company_documents: list[CompanyPDF] = Field(default_factory=list, max_length=3)
     qualification: str | None = None
     experience_years: int | None = None
     ice: str | None = None
@@ -258,6 +285,62 @@ class MatchPatch(BaseModel):
     note: str | None = None
 
 
+class TenderBody(BaseModel):
+    """Création manuelle d'un tender par l'admin (upsert par reference)."""
+    reference: str
+    organisme: str = "Inconnu"
+    objet: str | None = None
+    secteur: str = "autre"
+    region: str = "autre"
+    montant_mad: float | None = None
+    caution_mad: float | None = None
+    lots: list[Any] = []
+    qualifications_exigees: list[Any] = []
+    delai_jours: int | None = None
+    date_publication: str | None = None
+    date_remise: str | None = None
+    date_collecte: str | None = None
+    statut: str = "ouvert"
+    source: str = "manuel"
+    source_url: str | None = None
+    offer_type: str | None = None
+
+
+def _iso_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value[:10])
+    except ValueError:
+        raise HTTPException(400, f"Date invalide : {value}")
+
+
+def _email_bloque(email: str, wid: str | None = None) -> bool:
+    """Un compte ADMIN préexistant ne bloque pas l'onboarding d'une fiche
+    waitlist du même email : on réutilise l'identité sans toucher à son rôle.
+    Les comptes 'entreprise' restent, eux, des doublons interdits."""
+    utilisateur = db.get_user_by_email((email or "").strip().lower())
+    if utilisateur and utilisateur.get("role") == "admin":
+        return False
+    return db.email_taken(email, exclude_waitlist_id=wid)
+
+
+def _activer_matching(company: dict[str, Any], body: OnboardingBody) -> str:
+    """Active le matching sur le compte créé pendant l’onboarding."""
+    cle = str(company["id"])
+    try:
+        budget = float(body.budget_max or 0)
+        capacite = budget if 0 < budget < float("inf") else None
+    except (TypeError, ValueError):
+        capacite = None
+    db.execute(
+        """UPDATE companies SET matching_enabled=true, capacite_mad=%s
+           WHERE id=%s""",
+        (capacite, cle),
+    )
+    return cle
+
+
 @app.post("/auth/login")
 def login(body: LoginBody) -> dict[str, Any]:
     exp = time.time() + config.TOKEN_TTL_HOURS * 3600
@@ -267,10 +350,18 @@ def login(body: LoginBody) -> dict[str, Any]:
     # 1) Users dashboard (table users, rôles en base).
     if email:
         user = db.get_user_by_email(email)
-        if user and user.get("password_hash") == _hash_password(body.password):
-            return {"token": _sign({
-                "role": user.get("role", "admin"), "sub": email, "exp": exp,
-            }), "role": user.get("role", "admin")}
+        if user and _password_matches(body.password, user.get("password_hash")):
+            role = user.get("role", "admin")
+            claims = {"role": role, "sub": email, "exp": exp}
+            if role == "entreprise":
+                companies = db.query(
+                    "SELECT id, status FROM companies WHERE lower(email) = %s",
+                    (email.strip().lower(),),
+                )
+                if len(companies) != 1 or companies[0]["status"] == "suspended":
+                    raise HTTPException(403, "Compte entreprise indisponible")
+                claims["company_id"] = str(companies[0]["id"])
+            return {"token": _sign(claims), "role": role}
 
     # 2) Repli admin via .env (bootstrap avant premier seed).
     if body.username and body.username == config.ADMIN_USERNAME \
@@ -281,7 +372,7 @@ def login(body: LoginBody) -> dict[str, Any]:
     # 3) Entreprises (table companies).
     if email:
         rows = db.query("SELECT * FROM companies WHERE email = %s", (email,))
-        if rows and rows[0].get("password_hash") == _hash_password(body.password):
+        if rows and _password_matches(body.password, rows[0].get("password_hash")):
             company = rows[0]
             if company.get("status") == "suspended":
                 raise HTTPException(403, "Compte suspendu — contactez Soukna")
@@ -482,7 +573,7 @@ async def _pipeline_background_task() -> None:
 
 
 def require_cron_secret(request: Request) -> None:
-    secret = os.getenv("CRON_SECRET")
+    secret = config.CRON_SECRET
     if not secret:
         raise HTTPException(503, "CRON_SECRET non configuré")
     provided = request.headers.get("X-Cron-Secret", "")
@@ -642,17 +733,42 @@ def get_tenders(
     sector: str | None = None,
     region: str | None = None,
     statut: str | None = None,
+    offer_type: str | None = None,
     min_amount: float | None = None,
     q: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    min_score: int | None = Query(None, ge=0, le=100),
+    max_score: int | None = Query(None, ge=0, le=100),
+    company_id: str | None = None,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     _payload: dict[str, Any] = Depends(_check),
 ) -> dict[str, Any]:
-    items = db.tenders_list(sector=sector, region=region, statut=statut,
-                            min_amount=min_amount, q=q, limit=limit, offset=offset)
-    total = db.tenders_count(sector=sector, region=region, statut=statut,
-                             min_amount=min_amount, q=q)
+    filtres = dict(sector=sector, region=region, statut=statut,
+                   offer_type=offer_type, min_amount=min_amount, q=q,
+                   date_from=date_from, date_to=date_to, min_score=min_score,
+                   max_score=max_score, company_id=company_id)
+    items = db.tenders_list(**filtres, limit=limit, offset=offset)
+    total = db.tenders_count(**filtres)
     return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+@app.post("/tenders")
+def create_tender(body: TenderBody,
+                  _user: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    if body.offer_type is not None and body.offer_type not in (
+        "appel_offres", "consultation", "bon_de_commande"
+    ):
+        raise HTTPException(400, "offer_type invalide")
+    if not body.reference.strip():
+        raise HTTPException(400, "reference obligatoire")
+    payload = body.model_dump()
+    payload["reference"] = body.reference.strip()
+    for key in ("date_publication", "date_remise", "date_collecte"):
+        payload[key] = _iso_date(payload[key])
+    payload["date_collecte"] = payload["date_collecte"] or date.today()
+    return db.tenders_create(payload)
 
 
 @app.get("/tenders/{reference:path}/cps-status")
@@ -840,7 +956,7 @@ def get_admin_config(_user: dict[str, Any] = Depends(require_admin)) -> dict[str
         "portal_enabled": bool(config.PORTAL_ENABLED),
         "llm_enabled": bool(config.LLM_ENABLED),
         "kill_switch": bool(config.KILL_SWITCH),
-        "llm_key_present": bool(config.MISTRAL_API_KEY),
+        "llm_key_present": config.llm_key_present(),
         "email_ready": config.email_ready(),
         "whatsapp_ready": bool(config.WHATSAPP_TOKEN and config.WHATSAPP_PHONE_NUMBER_ID),
     }
@@ -1135,7 +1251,7 @@ def _do_invite(wid: str, admin_email: str) -> dict[str, Any]:
 
     if row["status"] == "active":
         raise HTTPException(409, "Ce client est déjà actif — aucune nouvelle invitation.")
-    if db.email_taken(email, exclude_waitlist_id=wid):
+    if _email_bloque(email, wid):
         raise HTTPException(
             409, "Un compte existe déjà pour cet email — invitation impossible (pas de doublon)."
         )
@@ -1157,8 +1273,11 @@ def _do_invite(wid: str, admin_email: str) -> dict[str, Any]:
 
     # 4. Profil entreprise pré-rempli (aucun canal envoyé ⇒ statut inchangé).
     if email_sent or wa_sent:
+        # Le téléphone n'est pas posé ici : `companies.phone` est unique et
+        # un même numéro peut servir à plusieurs fiches waitlist. Il sera
+        # renseigné à l'onboarding, quand le profil est réellement confirmé.
         company = db.upsert_company(
-            name=row["company_name"], email=email, phone=phone or None,
+            name=row["company_name"], email=email, phone=None,
             sectors=[row["sector"]] if row.get("sector") else [],
             keywords=[], regions=[],
             size=row.get("company_size") or "pme",
@@ -1224,7 +1343,7 @@ def admin_waitlist_link(
     row = db.waitlist_row(wid)
     if not row:
         raise HTTPException(404, "Ligne introuvable")
-    if db.email_taken((row["email"] or "").strip().lower(), exclude_waitlist_id=wid):
+    if _email_bloque((row["email"] or "").strip().lower(), wid):
         raise HTTPException(409, "Un compte existe déjà pour cet email.")
     token = db.create_invite_token(wid, row["email"], days=INVITE_DAYS,
                                    created_by=_user.get("sub", "admin"))
@@ -1290,7 +1409,8 @@ def onboarding_prefill(token: str) -> dict[str, Any]:
 
 
 @app.post("/onboarding/{token}")
-def onboarding_confirm(token: str, body: OnboardingBody) -> dict[str, Any]:
+def onboarding_confirm(token: str, body: OnboardingBody,
+                       background_tasks: BackgroundTasks) -> dict[str, Any]:
     """Le client définit son mot de passe et confirme son profil.
     L'essai de 14 jours démarre à cet instant précis."""
     inv = db.consume_invite_token(token)
@@ -1299,19 +1419,44 @@ def onboarding_confirm(token: str, body: OnboardingBody) -> dict[str, Any]:
     email = (inv["email"] or "").strip().lower()
     if len(body.password) < 8:
         raise HTTPException(422, "Le mot de passe doit contenir au moins 8 caractères.")
-    if db.email_taken(email, exclude_waitlist_id=str(inv["waitlist_id"])):
+    if _email_bloque(email, str(inv["waitlist_id"])):
         raise HTTPException(409, "Un compte existe déjà pour cet email.")
     if len(body.keywords) > 15:
         raise HTTPException(422, "15 mots-clés maximum.")
+    pieces = []
+    for document in body.company_documents:
+        filename = document.filename.strip()
+        try:
+            pdf = base64.b64decode(document.content_base64, validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(422, "Fichier PDF invalide.") from exc
+        if (not filename.lower().endswith(".pdf") or not pdf.startswith(b"%PDF-")
+                or len(pdf) > 2_097_152 or any(c in filename for c in "/\\\x00")):
+            raise HTTPException(422, "Chaque pièce doit être un PDF de 2 Mio maximum.")
+        pieces.append((hashlib.sha256(pdf).hexdigest(), filename, pdf))
+    if pieces and not db.query("SELECT to_regclass('public.company_documents') AS table_name")[0]["table_name"]:
+        raise HTTPException(503, "Le dépôt de pièces est temporairement indisponible.")
     lang = "ar" if body.lang == "ar" else "fr"
 
     wid = str(inv["waitlist_id"])
+    # Le formulaire affiche des libellés FR ; la base métier utilise des codes
+    # stables (it / casa-settat) pour rester alignée avec `entreprises`.
+    secteur = "it" if body.sector.strip().lower() in ("informatique", "it") else body.sector
+    regions = ["casa-settat" if c.strip().lower() == "casablanca" else c
+               for c in body.cities]
     # Compte client (mot de passe choisi par le client, jamais généré ni envoyé).
-    db.create_user(email, _hash_password(body.password), role="entreprise")
+    # Un compte admin préexistant (cas du demo) est réutilisé sans changer son
+    # rôle : on ne écrase ni ses droits ni son mot de passe.
+    utilisateur = db.get_user_by_email(email)
+    if utilisateur is None:
+        db.create_user(email, _hash_new_password(body.password), role="entreprise")
+    else:
+        db.audit(email, "onboarding_existing_user", wid,
+                 f"compte {utilisateur.get('role')} conservé, mot de passe inchangé")
     company = db.upsert_company(
         name=body.company_name, email=email, phone=body.whatsapp or None,
-        sectors=[body.sector] if body.sector else [],
-        keywords=body.keywords, regions=body.cities,
+        sectors=[secteur] if secteur else [],
+        keywords=body.keywords, regions=regions,
         size=body.size or "pme",
     )
     db.activate_trial_company(str(company["id"]), waitlist_id=wid,
@@ -1323,12 +1468,25 @@ def onboarding_confirm(token: str, body: OnboardingBody) -> dict[str, Any]:
            if getattr(body, k, None) not in (None, [])}
     if ext:
         db.update_company_profile_ext(str(company["id"]), ext)
+    for digest, filename, pdf in pieces:
+        db.execute(
+            """INSERT INTO public.company_documents (company_id, sha256, filename, pdf)
+               VALUES (%s, %s, %s, %s) ON CONFLICT (company_id, sha256) DO NOTHING""",
+            (str(company["id"]), digest, filename, pdf),
+        )
     db.waitlist_update(wid, status="active", activated_at=db.utcnow())
     db.mark_token_used(token)
     db.audit(email, "activate", wid,
              f"essai démarré ({TRIAL_DAYS} jours), entreprise {company['id']}")
     # Nouvelle opération : informer l'admin de l'activation du client.
-    _notify_activation(wid, email, TRIAL_DAYS)
+
+    # Rattrapage immédiat : l'entreprise inscrite à 11h ne doit pas attendre
+    # 8h le lendemain. On score TOUTES les offres ouvertes déjà collectées,
+    # localement (aucun appel plateforme, dont la fenêtre n'est pas fermée).
+    cle_scoring = _activer_matching(company, body)
+    mark_init(cle_scoring, "running")
+    background_tasks.add_task(_initial_analysis, cle_scoring)
+    background_tasks.add_task(_notify_activation, wid, email, TRIAL_DAYS)
 
     exp = time.time() + config.TOKEN_TTL_HOURS * 3600
     return {
@@ -1336,7 +1494,33 @@ def onboarding_confirm(token: str, body: OnboardingBody) -> dict[str, Any]:
                         "company_id": str(company["id"]), "exp": exp}),
         "role": "entreprise",
         "company_id": str(company["id"]),
+        "scoring_company_id": cle_scoring,
     }
+
+
+def _initial_analysis(company_id: str) -> None:
+    try:
+        rapport = calculer_maintenant(company_id, avec_distribution=False)
+        if rapport.get("statut") in ("ok", "aucune_offre"):
+            mark_init(company_id, "ready")
+        else:
+            mark_init(company_id, "error", rapport.get("erreur"))
+    except Exception as exc:
+        mark_init(company_id, "error", type(exc).__name__)
+
+
+@app.post("/companies/{company_id}/score-now")
+def score_now(company_id: str,
+              _user: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    """Rattrapage manuel : scores/verdicts/digest immédiats, sans plateforme.
+
+    Pratique lorsqu'une entreprise s'inscrit après la collecte du matin : le
+    RÉGISSEUR n'a pas besoin de ré Scanner le portail ni d'attendre 8h.
+    """
+    rapport = calculer_maintenant(company_id, date.today().isoformat(), True)
+    if rapport.get("statut") == "echec":
+        raise HTTPException(500, rapport.get("erreur") or "score immédiat en échec")
+    return rapport
 
 
 @app.get("/stats")

@@ -23,10 +23,25 @@ type Prefill = {
 };
 
 const REGIONS = ["Casablanca", "Rabat", "Tanger", "Marrakech", "Agadir"];
-const SECTORS = [
-  "Informatique", "BTP", "Fournitures",
-  "Services et maintenance", "Conseil et études",
-];
+type SectorOption = { code: string; label_fr: string; label_ar: string; category: string };
+const SECTOR_GROUPS = {
+  travaux: { fr: "Travaux", ar: "الأشغال" },
+  fournitures: { fr: "Fournitures", ar: "التوريدات" },
+  services: { fr: "Services", ar: "الخدمات" },
+  technique: { fr: "Technique", ar: "التقنيات" },
+};
+
+function encodePdf(file: File): Promise<{ filename: string; content_base64: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => resolve({
+      filename: file.name,
+      content_base64: String(reader.result).split(",", 2)[1],
+    });
+    reader.readAsDataURL(file);
+  });
+}
 
 const T: Record<"fr" | "ar", Record<string, string>> = {
   fr: {
@@ -89,6 +104,7 @@ function OnboardingInner() {
   const [confirm, setConfirm] = useState("");
   const [name, setName] = useState("");
   const [sector, setSector] = useState("");
+  const [sectors, setSectors] = useState<SectorOption[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [keywords, setKeywords] = useState<string[]>([]);
   const [kwInput, setKwInput] = useState("");
@@ -96,6 +112,7 @@ function OnboardingInner() {
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [certs, setCerts] = useState("");
+  const [pdfs, setPdfs] = useState<File[]>([]);
   const [qualif, setQualif] = useState("");
   const [expYears, setExpYears] = useState("");
   const [size, setSize] = useState("pme");
@@ -129,6 +146,16 @@ function OnboardingInner() {
     })();
   }, [token]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(`${API_URL}/sectors`, { signal: controller.signal })
+      .then(async (response) => {
+        if (response.ok) setSectors(await response.json());
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
   function toggleLang() {
     const next = lang === "fr" ? "ar" : "fr";
     setLang(next);
@@ -149,8 +176,16 @@ function OnboardingInner() {
     setError("");
     if (password.length < 8) { setError(t("pwdShort")); return; }
     if (password !== confirm) { setError(t("pwdMismatch")); return; }
+    if (pdfs.length > 3 || pdfs.some(file =>
+      !file.name.toLowerCase().endsWith(".pdf") || file.size > 2_097_152
+    )) {
+      setError(lang === "ar" ? "أضف حتى 3 ملفات PDF، بحجم 2 ميغابايت لكل ملف."
+        : "Ajoutez jusqu’à 3 PDF de 2 Mio chacun.");
+      return;
+    }
     setBusy(true);
     try {
+      const companyDocuments = await Promise.all(pdfs.map(encodePdf));
       const r = await fetch(`${API_URL}/onboarding/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +195,7 @@ function OnboardingInner() {
           budget_min: budgetMin ? Number(budgetMin) : null,
           budget_max: budgetMax ? Number(budgetMax) : null,
           certifications: certs.split(",").map((x) => x.trim()).filter(Boolean),
+          company_documents: companyDocuments,
           qualification: qualif || null,
           experience_years: expYears ? parseInt(expYears, 10) : null,
         }),
@@ -251,7 +287,16 @@ function OnboardingInner() {
                 <select required value={sector} onChange={(e) => setSector(e.target.value)}
                         className="mt-1 w-full bg-paper/40 border border-line rounded-lg px-3 py-2.5 text-xs text-ink focus:bg-white focus:border-greenbrand">
                   <option value="">{t("selectSize")}</option>
-                  {SECTORS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {sector && !sectors.some((s) => s.code === sector) && (
+                    <option value={sector}>{sector}</option>
+                  )}
+                  {Array.from(new Set(sectors.map((s) => s.category))).map((category) => (
+                    <optgroup key={category} label={SECTOR_GROUPS[category as keyof typeof SECTOR_GROUPS]?.[lang] || (lang === "ar" ? "قطاعات أخرى" : "Autres secteurs")}>
+                      {sectors.filter((s) => s.category === category).map((s) => (
+                        <option key={s.code} value={s.code}>{lang === "ar" ? s.label_ar : s.label_fr}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </label>
             </div>
@@ -340,6 +385,15 @@ function OnboardingInner() {
                     {lang === "ar" ? "الشهادات (مفصولة بفواصل)" : "Certifications (séparées par ,)"}
                     <input value={certs} onChange={(e) => setCerts(e.target.value)} placeholder="ISO 9001, ISO 14001"
                            className="mt-1 w-full bg-paper/40 border border-line rounded-lg px-3 py-2.5 text-xs text-ink" />
+                  </label>
+                  <label className="block text-xs font-bold text-ink sm:col-span-2">
+                    {lang === "ar" ? "شهادات ووثائق الشركة (اختياري)" : "Certificats et justificatifs (facultatif)"}
+                    <span className="block mt-1 text-muted font-normal">
+                      {lang === "ar" ? "حتى 3 ملفات PDF، 2 ميغابايت لكل ملف." : "Jusqu’à 3 PDF de 2 Mio chacun."}
+                    </span>
+                    <input type="file" accept=".pdf,application/pdf" multiple
+                           onChange={(e) => setPdfs(Array.from(e.target.files ?? []))}
+                           className="mt-1 block w-full text-xs text-ink" />
                   </label>
                   <label className="block text-xs font-bold text-ink">
                     {lang === "ar" ? "التصنيف" : "Qualification / classement"}

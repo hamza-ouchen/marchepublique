@@ -34,6 +34,16 @@ SECTORS: list[dict[str, str]] = [
     {"code": "telecom", "label_fr": "Télécoms", "label_ar": "الاتصالات", "category": "technique"},
     {"code": "hydrocarbures", "label_fr": "Hydrocarbures & chimie", "label_ar": "المحروقات والكيمياء", "category": "fournitures"},
     {"code": "environnement", "label_fr": "Environnement & déchets", "label_ar": "البيئة والنفايات", "category": "services"},
+    {"code": "communication", "label_fr": "Communication & événementiel", "label_ar": "التواصل وتنظيم الفعاليات", "category": "services"},
+    {"code": "audit", "label_fr": "Audit, comptabilité & contrôle", "label_ar": "التدقيق والمحاسبة والمراقبة", "category": "services"},
+    {"code": "traduction", "label_fr": "Traduction & interprétariat", "label_ar": "الترجمة التحريرية والشفوية", "category": "services"},
+    {"code": "audiovisuel", "label_fr": "Photographie & audiovisuel", "label_ar": "التصوير والسمعي البصري", "category": "services"},
+    {"code": "architecture", "label_fr": "Architecture & maîtrise d’œuvre", "label_ar": "الهندسة المعمارية والإشراف على الأشغال", "category": "travaux"},
+    {"code": "rehabilitation", "label_fr": "Réhabilitation & rénovation", "label_ar": "إعادة التأهيل والترميم", "category": "travaux"},
+    {"code": "logiciels", "label_fr": "Logiciels & développement", "label_ar": "البرمجيات والتطوير", "category": "technique"},
+    {"code": "cybersecurite", "label_fr": "Cybersécurité & sécurité des systèmes", "label_ar": "الأمن السيبراني وأمن الأنظمة", "category": "technique"},
+    {"code": "restauration", "label_fr": "Restauration & denrées alimentaires", "label_ar": "الإطعام والمواد الغذائية", "category": "fournitures"},
+    {"code": "fournitures-scolaires", "label_fr": "Fournitures scolaires & pédagogiques", "label_ar": "اللوازم المدرسية والتربوية", "category": "fournitures"},
 ]
 
 SEED_OPPORTUNITIES: list[dict[str, Any]] = [

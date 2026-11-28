@@ -2,8 +2,10 @@ import type {
   ChatResponse,
   DashboardResponse,
   Lang,
+  OpportunityDetail,
   Status,
 } from "./types";
+import { getAuth } from "../app/lib";
 
 // Vide = même origine (le rewrite Next /api/* -> FastAPI). En local on peut
 // aussi viser directement http://127.0.0.1:8000 via .env.local.
@@ -20,6 +22,7 @@ async function request<T>(
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...authorization(),
       ...(init?.headers || {}),
     },
   });
@@ -36,6 +39,11 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
+function authorization(): Record<string, string> {
+  const auth = getAuth();
+  return auth ? { Authorization: `Bearer ${auth.token}` } : {};
+}
+
 function params(values: Record<string, string | number | boolean | undefined | null>) {
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
@@ -48,7 +56,32 @@ function params(values: Record<string, string | number | boolean | undefined | n
 }
 
 export const api = {
-  dashboard(companyId = COMPANY_ID, date?: string) {
+  opportunityDocument(reference: string) {
+    return request<{ url: string }>(`/api/opportunity-document${params({ reference })}`);
+  },
+
+  opportunityDetail(reference: string) {
+    return request<OpportunityDetail>(`/api/opportunity-detail${params({ reference })}`);
+  },
+
+  async downloadReport(reference: string): Promise<void> {
+    const response = await fetch(
+      `${BASE_URL}/api/opportunity-report${params({ reference })}`,
+      { headers: authorization() },
+    );
+    if (!response.ok) throw new Error(`Erreur ${response.status}`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sou9na-rapport-${reference.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60)}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  dashboard(companyId?: string, date?: string) {
     return request<DashboardResponse>(
       `/api/dashboard${params({ company_id: companyId, date })}`,
     );

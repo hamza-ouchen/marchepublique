@@ -26,6 +26,7 @@ def test_extract_json_invalid_returns_none():
 def test_make_llm_without_key_is_heuristic(monkeypatch):
     from app import config
     monkeypatch.setattr(config, "MISTRAL_API_KEY", "")
+    monkeypatch.setattr(config, "EVERYAPI_API_KEY", "")
     llm, mode = make_llm()
     assert llm is None
     assert mode == "heuristic"

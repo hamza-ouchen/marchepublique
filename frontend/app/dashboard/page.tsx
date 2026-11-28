@@ -5,9 +5,12 @@
 // Données de démonstration, bilingue FR/AR avec bascule RTL.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import ChatPanel from "@/components/chat-panel";
-import { api, COMPANY_ID } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { Opportunity } from "@/lib/types";
+import { clearAuth, getAuth } from "../lib";
+import BrandLoader from "../brand-loader";
 
 // ------------------------------------------------------------------ types
 type Lang = "fr" | "ar";
@@ -23,12 +26,19 @@ type Opp = {
   sector: keyof typeof SECTORS;
   opportunity_type: "appel_offres" | "bon_commande" | "consultation";
   deadline: string;
+  deadline_time?: string | null;
+  publication_time?: string | null;
+  publication_date?: string | null;
   amount: number | null;
   guarantee: number | null;
   match_score: number;
   verdict: Verdict;
   risks: string[];
   reasons: string[];
+  recommendations?: string[];
+  advice?: string;
+  confidence?: Opportunity["confidence"];
+  citation?: Opportunity["citation"];
   breakdown: Record<string, number>;
   saved: boolean;
   status: Status;
@@ -108,8 +118,13 @@ const T: Record<Lang, Record<string, string>> = {
     regionFit: "Proximité géographique",
     sizeFit: "Capacité & Taille",
     historyFit: "Historique & Références",
-    risksHeader: "Risques et points d'attention",
-    noRisks: "Aucun risque particulier identifié.",
+    risksHeader: "Points à vérifier dans le dossier",
+    noRisks: "Aucun point bloquant identifié dans les pièces analysées.",
+    risksNote:
+      "Actions de vérification déduites du dossier officiel. Sou9na n'affirme aucune pénalité ni retard non mentionné dans les pièces.",
+    recommendationsHeader: "Recommandations",
+    adviceHeader: "Conseil Sou9na",
+    openFull: "Voir le dossier complet",
     officialSourceTitle: "Document Officiel & CPS",
     officialSourceDesc:
       "Le résumé Sou9na est indicatif. Consultez le dossier de consultation officiel avant tout engagement.",
@@ -243,8 +258,13 @@ const T: Record<Lang, Record<string, string>> = {
     regionFit: "القرب الجغرافي",
     sizeFit: "القدرة والحجم",
     historyFit: "السجل والخبرة السابقة",
-    risksHeader: "المخاطر ونقاط الانتباه",
-    noRisks: "لا توجد مخاطر خاصة تم تحديدها.",
+    risksHeader: "نقاط يجب التحقق منها في الملف",
+    noRisks: "لم يتم تحديد أي نقطة حاجزة في المستندات المحللة.",
+    risksNote:
+      "إجراءات تحقق مستنتجة من الملف الرسمي. لا يؤكد Sou9na أي غرامة أو تأخير غير مذكور في المستندات.",
+    recommendationsHeader: "التوصيات",
+    adviceHeader: "نصيحة Sou9na",
+    openFull: "عرض الملف الكامل",
     officialSourceTitle: "الوثيقة الرسمية ودفتر الشروط",
     officialSourceDesc:
       "ملخص Sou9na إرشادي. يرجى الاطلاع على ملف الاستشارة الرسمي قبل أي التزام.",
@@ -493,7 +513,8 @@ function fmtMoney(n: number | null, lang: Lang): string {
   return new Intl.NumberFormat(lang === "fr" ? "fr-MA" : "ar-MA", {
     style: "currency",
     currency: "MAD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(n);
 }
 
@@ -521,10 +542,13 @@ function toOpp(o: Opportunity): Opp {
 
 // ------------------------------------------------------------------ page
 export default function DashboardPage() {
+  const router = useRouter();
   const [lang, setLang] = useState<Lang>("fr");
   const [tab, setTab] = useState<"feed" | "dossiers" | "profile" | "alerts">("feed");
   const [opps, setOpps] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyId, setCompanyId] = useState("");
+  const [initStatus, setInitStatus] = useState<"ready" | "running" | "error">("ready");
   const [apiError, setApiError] = useState("");
   const [companyName, setCompanyName] = useState("Sou9na");
   const [companyInitials, setCompanyInitials] = useState("S");
@@ -545,11 +569,29 @@ export default function DashboardPage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const auth = getAuth();
+    if (!auth) {
+      window.location.href = "/login";
+      return;
+    }
+    if (auth.role === "admin") {
+      window.location.href = "/admin";
+    }
+  }, []);
+
+  useEffect(() => {
+    if (getAuth()?.role !== "entreprise") return;
     let vivant = true;
-    api
-      .dashboard(COMPANY_ID)
+    let prochain: ReturnType<typeof setTimeout> | undefined;
+    function charger() {
+      void api.dashboard()
       .then((data) => {
         if (!vivant) return;
+        setCompanyId(data.company.company_id);
+        setInitStatus(data.init_status);
+        if (data.init_status === "running") {
+          prochain = setTimeout(charger, 4000);
+        }
         setOpps(data.opportunities.map(toOpp));
         const nom = data.company?.nom || "Sou9na";
         setCompanyName(nom);
@@ -569,13 +611,19 @@ export default function DashboardPage() {
         setApiError("");
       })
       .catch((err: Error) => {
-        if (vivant) setApiError(err.message || "API indisponible");
+        if (vivant) {
+          setApiError(err.message || "API indisponible");
+          prochain = setTimeout(charger, 10000);
+        }
       })
       .finally(() => {
         if (vivant) setLoading(false);
       });
+    }
+    charger();
     return () => {
       vivant = false;
+      clearTimeout(prochain);
     };
   }, []);
 
@@ -608,6 +656,7 @@ export default function DashboardPage() {
 
   // drawer + notifications
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
 
   // profil (démo)
@@ -634,6 +683,18 @@ export default function DashboardPage() {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 3200);
+  }
+
+  async function downloadOriginal(reference: string) {
+    setDownloading(reference);
+    try {
+      const { url } = await api.opportunityDocument(reference);
+      window.location.assign(url);
+    } catch {
+      showToast(lang === "fr" ? "Document original indisponible." : "الملف الأصلي غير متاح.");
+    } finally {
+      setDownloading(null);
+    }
   }
 
   function toggleLang() {
@@ -727,7 +788,7 @@ export default function DashboardPage() {
       prev.map((x) => (x.id === o.id ? { ...x, saved: prochain } : x)),
     );
     showToast(prochain ? t("savedToast") : t("removedToast"));
-    void api.save(COMPANY_ID, o.id, prochain).catch((err: Error) => {
+    void api.save(companyId, o.id, prochain).catch((err: Error) => {
       showToast(err.message);
     });
   }
@@ -736,7 +797,7 @@ export default function DashboardPage() {
     setOpps((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
     const ref = opps.find((x) => x.id === id)?.id;
     if (ref) {
-      void api.update(COMPANY_ID, ref, status).catch((err: Error) => {
+      void api.update(companyId, ref, status).catch((err: Error) => {
         showToast(err.message);
       });
     }
@@ -746,7 +807,7 @@ export default function DashboardPage() {
     setOpps((prev) => prev.map((x) => (x.id === id ? { ...x, note } : x)));
     const ref = opps.find((x) => x.id === id)?.id;
     if (ref) {
-      void api.update(COMPANY_ID, ref, undefined, note).catch((err: Error) => {
+      void api.update(companyId, ref, undefined, note).catch((err: Error) => {
         showToast(err.message);
       });
     }
@@ -857,12 +918,16 @@ export default function DashboardPage() {
               <div className="text-xs font-bold text-ink leading-none">{companyName}</div>
               <div className="text-[10px] text-muted mt-0.5">{fName}</div>
             </div>
-            <a
-              href="/"
+            <button
+              type="button"
+              onClick={() => {
+                clearAuth();
+                window.location.href = "/";
+              }}
               className="text-[11px] font-semibold text-muted hover:text-redbrand transition-colors ms-2"
             >
               {t("logout")}
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -977,7 +1042,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-2 text-[11px] text-muted mb-3 bg-paper/50 p-2 rounded">
             <div>
               <span className="block text-[9px] font-bold uppercase text-muted">{t("keyDeadline")}</span>
-              <strong className="text-ink font-semibold">◷ {fmtDate(o.deadline, lang)}</strong>
+              <strong className="text-ink font-semibold">◷ {fmtDate(o.deadline, lang)}{o.deadline_time && ` · ${o.deadline_time}`}</strong>
             </div>
             <div>
               <span className="block text-[9px] font-bold uppercase text-muted">{t("keyCity")}</span>
@@ -985,6 +1050,19 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-2 text-[11px] mb-3">
+            <div><span className="block text-muted">{t("keyBudget")}</span>{fmtMoney(o.amount, lang)}</div>
+            <div><span className="block text-muted">{t("keyGuarantee")}</span>{fmtMoney(o.guarantee, lang)}</div>
+          </div>
+          {o.reasons[0] && <p className="text-xs text-ink mb-3">{o.reasons[0]}</p>}
+          {o.confidence && (
+            <p className="text-[11px] text-muted mb-3">
+              {lang === "fr" ? "Confiance de l’analyse" : "مستوى الثقة في التحليل"}{" · "}
+              {lang === "fr"
+                ? { faible: "faible", moyen: "moyenne", eleve: "élevée" }[o.confidence]
+                : { faible: "منخفضة", moyen: "متوسطة", eleve: "مرتفعة" }[o.confidence]}
+            </p>
+          )}
           {o.risks.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-4">
               {o.risks.slice(0, 3).map((r, i) => (
@@ -1001,6 +1079,14 @@ export default function DashboardPage() {
             {pill.label}
           </span>
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => downloadOriginal(o.id)}
+              disabled={downloading !== null}
+              className="text-xs font-semibold text-greenbrand px-2 py-1.5 rounded border border-line hover:bg-paper disabled:opacity-50"
+              type="button"
+            >
+              {downloading === o.id ? "…" : lang === "fr" ? "Document" : "المستند"}
+            </button>
             <button
               onClick={() => toggleSave(o)}
               className="p-1.5 rounded border border-line hover:bg-paper transition-all"
@@ -1364,12 +1450,14 @@ export default function DashboardPage() {
   );
 
   // ---------------------------------------------------------- drawer
-  const breakdownKeys: Array<[string, string]> = [
-    ["sector", "sectorFit"],
-    ["keywords", "keywordFit"],
-    ["region", "regionFit"],
-    ["size", "sizeFit"],
-    ["history", "historyFit"],
+  const breakdownKeys: Array<[string, string, number]> = [
+    ["secteur", t("sectorFit"), 25],
+    ["keywords", lang === "fr" ? "Qualifications" : "المؤهلات", 15],
+    ["region", t("regionFit"), 15],
+    ["size", lang === "fr" ? "Capacité financière" : "القدرة المالية", 20],
+    ["caution", t("keyGuarantee"), 10],
+    ["delai", lang === "fr" ? "Délai d’exécution" : "مدة التنفيذ", 10],
+    ["history", t("historyFit"), 5],
   ];
 
   const drawerEl = (
@@ -1439,17 +1527,17 @@ export default function DashboardPage() {
                     {t("breakdownHeader")}
                   </h3>
                   <div className="space-y-2 text-xs">
-                    {breakdownKeys.map(([k, label]) => {
+                    {breakdownKeys.map(([k, label, maximum]) => {
                       const val = bd[k];
                       if (typeof val !== "number") return null;
                       return (
                         <div key={k} className="space-y-0.5">
                           <div className="flex justify-between font-semibold text-ink">
-                            <span>{t(label)}</span>
-                            <span>{val}%</span>
+                            <span>{label}</span>
+                            <span>{val} / {maximum}</span>
                           </div>
                           <div className="h-1.5 w-full bg-paper rounded-full overflow-hidden border border-line/40">
-                            <div className="h-full bg-greenbrand" style={{ width: `${val}%` }} />
+                            <div className="h-full bg-greenbrand" style={{ width: `${Math.min(100, val / maximum * 100)}%` }} />
                           </div>
                         </div>
                       );
@@ -1457,9 +1545,18 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {activeOpp.citation?.reference && (
+                  <p className="text-xs text-muted">
+                    {lang === "fr" ? "Pièce citée" : "المستند المشار إليه"}{" · "}
+                    {activeOpp.citation.reference}
+                    {activeOpp.citation.pages && ` · p. ${activeOpp.citation.pages}`}
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    [t("keyDeadline"), fmtDate(activeOpp.deadline, lang)],
+                    [t("keyDeadline"), [fmtDate(activeOpp.deadline, lang), activeOpp.deadline_time].filter(Boolean).join(" · ")],
+                    ...(activeOpp.publication_date ? [[lang === "fr" ? "Publication" : "النشر",
+                      [fmtDate(activeOpp.publication_date, lang), activeOpp.publication_time].filter(Boolean).join(" · ")]] : []),
                     [t("keyCity"), activeOpp.city],
                     [t("keyBudget"), fmtMoney(activeOpp.amount, lang)],
                     [t("keyGuarantee"), fmtMoney(activeOpp.guarantee, lang)],
@@ -1475,6 +1572,7 @@ export default function DashboardPage() {
                   <h3 className="text-xs font-bold text-ink uppercase tracking-wider border-b border-line pb-1">
                     {t("risksHeader")}
                   </h3>
+                  <p className="text-[11px] text-muted leading-snug">{t("risksNote")}</p>
                   <div className="space-y-2">
                     {activeOpp.risks.length === 0 ? (
                       <p className="text-xs text-muted">{t("noRisks")}</p>
@@ -1488,6 +1586,31 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </div>
+
+                {!!activeOpp.recommendations?.length && (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-ink uppercase tracking-wider border-b border-line pb-1">
+                      {t("recommendationsHeader")}
+                    </h3>
+                    <ol className="space-y-1.5 text-xs text-ink">
+                      {activeOpp.recommendations.map((rec, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-greenbrand/10 text-[9px] font-bold text-greenbrand">
+                            {i + 1}
+                          </span>
+                          <span>{t(rec)}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {activeOpp.advice && (
+                  <div className="p-3 bg-greenbg/60 border border-greenbrand/20 rounded text-xs text-ink">
+                    <span className="font-bold text-greenbrand block mb-1">{t("adviceHeader")}</span>
+                    <p className="leading-snug">{t(activeOpp.advice)}</p>
+                  </div>
+                )}
 
                 <div className="p-3 bg-paper/40 border border-line rounded text-xs space-y-1">
                   <span className="font-bold text-ink block">{t("officialSourceTitle")}</span>
@@ -1510,8 +1633,18 @@ export default function DashboardPage() {
                 >
                   ★ {activeOpp.saved ? t("savedDossier") : t("saveDossier")}
                 </button>
-                <button onClick={() => setActiveId(null)}
+                <button
+                  onClick={() => {
+                    const reference = activeOpp.id;
+                    setActiveId(null);
+                    router.push(`/offres?reference=${encodeURIComponent(reference)}`);
+                  }}
                   className="flex-1 bg-greenbrand hover:bg-[#18553f] text-white py-2 rounded text-xs font-bold transition-all"
+                  type="button">
+                  {t("openFull")} →
+                </button>
+                <button onClick={() => setActiveId(null)}
+                  className="flex-1 border border-line bg-white text-ink py-2 rounded text-xs font-bold transition-all hover:bg-paper"
                   type="button">
                   {t("closeBtn")}
                 </button>
@@ -1524,6 +1657,33 @@ export default function DashboardPage() {
   );
 
   // ---------------------------------------------------------- render
+  const preparationSteps = lang === "fr"
+    ? [
+        "Synchronisation de votre entreprise et de son profil",
+        "Analyse des offres documentées correspondantes",
+        "Préparation de votre sélection et de vos alertes",
+      ]
+    : [
+        "مزامنة شركتك وملفها التعريفي",
+        "تحليل العروض الموثّقة المطابقة",
+        "تجهيز قائمتك المختارة وتنبيهاتك",
+      ];
+
+  // Le chargement « pro » en 3 étapes est réservé à la PREMIÈRE analyse :
+  // le temps est utilisé par le pipeline pour calculer scores et verdicts.
+  // Les simples rechargements gardent un loader léger et discret.
+  if (initStatus === "running") {
+    return (
+      <BrandLoader
+        label={lang === "fr"
+          ? "Préparation de votre espace Sou9na…"
+          : "جارٍ تجهيز مساحة Sou9na الخاصة بك…"}
+        showProgress
+        steps={preparationSteps}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-paper text-ink">
       {headerEl}
@@ -1542,7 +1702,14 @@ export default function DashboardPage() {
             {lang === "fr" ? "Chargement des données réelles…" : "جارٍ تحميل البيانات الحقيقية…"}
           </div>
         )}
-        {tab === "feed" && (
+        {initStatus === "error" && (
+          <div role="alert" className="rounded-lg border border-line bg-white p-4 text-sm text-ink">
+            {lang === "fr"
+              ? "La première analyse n’a pas abouti. Contactez Sou9na pour relancer la préparation."
+              : "تعذّر إتمام التحليل الأول. تواصل مع Sou9na لإعادة تشغيله."}
+          </div>
+        )}
+        {tab === "feed" && initStatus === "ready" && (
           <>
             {kpisEl}
             {feedEl}
@@ -1559,7 +1726,7 @@ export default function DashboardPage() {
 
       {drawerEl}
 
-      <ChatPanel lang={lang} />
+      {companyId && <ChatPanel lang={lang} companyId={companyId} />}
 
       {toast && (
         <div className="fixed bottom-5 right-5 z-[80] bg-ink text-white px-4 py-3 rounded-md shadow-xl text-xs max-w-sm">

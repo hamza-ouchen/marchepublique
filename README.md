@@ -443,15 +443,19 @@ conforme aux 7 clauses suivantes :
 **Sortie** :
 ```json
 { "verdict": "GO | A_ETUDIER | NO_GO",
-  "controles": { "caution_vs_capacite": "ok | risque | ko", "ice_attestations": "ok | risque | ko",
-                 "qualifications": "ok | risque | ko", "delai_atteignable": "ok | risque | ko" },
+  "controles": { "caution_vs_capacite": "ok | risque | ko | inconnu",
+                 "ice_attestations": "ok | risque | ko | inconnu",
+                 "qualifications": "ok | risque | ko | inconnu",
+                 "delai_atteignable": "ok | risque | ko | inconnu" },
   "justifications": [ { "constat": "…", "reference": "décret 2-22-431, art. …" } ],
   "risques_a_verifier": [ "obtenir l'attestation X avant le …", "…", "…" ] }
 ```
 
-**Règles** : GO = 4 contrôles « ok » ; NO-GO = ≥ 1 éliminatoire (montant > capacité · qualification catégorielle manquante · délai physiquement impossible) ; sinon À ÉTUDIER + **≥ 3 risques à vérifier**. **Match et verdict sont indépendants** : un Match de 96 peut être NO-GO (contrôle éliminatoire).
+**Règles** : GO = 4 contrôles « ok » **et** score ≥ 75 **et** confiance « eleve » **et** document exploitable ; NO_GO = ≥ 1 contrôle « ko » ou score < 45 ; sinon A_ETUDIER avec **≥ 3 risques à vérifier**. Une valeur absente, nulle ou vide est toujours `inconnu`, jamais `ok` ni `ko`, et bloque le GO. **Match et verdict sont indépendants** : un Match de 96 peut être NO_GO (contrôle éliminatoire).
 
-**Test seul** : 5 dossiers d'essai → 5 verdicts attendus, 100 % justifiés (≥ 1 référence réglementaire chacun).
+**Mode de production** : le flow Agentic JUGE fait une revue MCP contrainte des 5 meilleurs dossiers (`revue_agentique_mcp`) ; le JUGE déterministe LangGraph reste l'unique écrivain des verdicts complets. Repli automatique sur A2A si le flow Agentic expire, répond en erreur HTTP ou renvoie une réponse invalide.
+
+**Test seul** : 5 dossiers d'essai → 5 verdicts attendus, chacun avec ≥ 1 référence ; cas « inconnu » (caution, montant, qualifications, délai) → A_ETUDIER et ≥ 3 risques.
 
 #### 💬 CONCIERGE (conversation / FAQ)
 

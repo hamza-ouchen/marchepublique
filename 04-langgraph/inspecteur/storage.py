@@ -123,6 +123,9 @@ def make_uploader(bucket: str = "cps-originaux") -> Callable[[str, bytes], str] 
     if creds is None:
         return None
 
+    if os.getenv("SOU9NA_STORE_TENDER_ORIGINALS", "0") != "1":
+        return None
+
     def _uploader(path: str, data: bytes) -> str:
         return upload_bytes(bucket, path, data)
 

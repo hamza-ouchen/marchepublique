@@ -38,22 +38,24 @@ def extract_with_pypdf(data: bytes) -> tuple[str, int]:
 def extract_with_ocr(data: bytes) -> tuple[str, int]:
     # Fallback OCR pour pages scannées. Requiert pytesseract + pdf2image +
     # binaire tesseract installé. Lève ImportError si absent.
+    import pymupdf
     import pytesseract
     tesseract_cmd = os.environ.get("TESSERACT_CMD",
                                     r"C:\Program Files\Tesseract-OCR\tesseract.exe")
     if os.path.exists(tesseract_cmd):
         pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-    from pdf2image import convert_from_bytes
+    # PyMuPDF est déjà requis par requirements.txt : on évite une dépendance
+    # Poppler/pdf2image supplémentaire (souvent absente en environnement local).
     dpi = int(os.environ.get("SOU9NA_OCR_DPI", "150"))
     pages = []
     with tempfile.TemporaryDirectory(prefix="sou9na-ocr-") as folder:
-        paths = convert_from_bytes(
-            data, dpi=dpi, fmt="png", output_folder=folder,
-            paths_only=True, thread_count=1, timeout=180,
-        )
-        for index, image_path in enumerate(paths, 1):
-            text = pytesseract.image_to_string(image_path, lang="fra", timeout=60)
-            pages.append(f"----- PAGE {index} -----\n" + (text or ""))
+        with pymupdf.open(stream=data, filetype="pdf") as doc:
+            for index, page in enumerate(doc, 1):
+                pix = page.get_pixmap(dpi=dpi)
+                image_path = os.path.join(folder, f"page-{index}.png")
+                pix.save(image_path)
+                text = pytesseract.image_to_string(image_path, lang="fra", timeout=60)
+                pages.append(f"----- PAGE {index} -----\n" + (text or ""))
     return "\n\n".join(pages), len(pages)
 
 
@@ -108,13 +110,15 @@ _MONTHS_FR = {
     "decembre": 12,
 }
 _DATE_RE = re.compile(
-    r"(?P<day>\d{1,2})\s*[/\-]\s*(?P<month>\d{1,2}|"
-    + "|".join(_MONTHS_FR) + r")\s*[/\-]\s*(?P<year>\d{4})",
+    r"(?P<day>\d{1,2})(?:\s*[/\-]\s*|\s+)(?P<month>\d{1,2}|"
+    + "|".join(_MONTHS_FR) + r")(?:\s*[/\-]\s*|\s+)(?P<year>\d{4})",
     re.IGNORECASE,
 )
 
 
 def _iso_date(value: str) -> str | None:
+    from datetime import date
+
     match = _DATE_RE.search(value or "")
     if not match:
         return None
@@ -128,12 +132,21 @@ def _iso_date(value: str) -> str | None:
     day, year = int(match.group("day")), int(match.group("year"))
     if not 1 <= day <= 31 or not 1900 <= year <= 2100:
         return None
-    return f"{year:04d}-{number:02d}-{day:02d}"
+    try:
+        return date(year, number, day).isoformat()
+    except ValueError:
+        return None
 
 
-def _find_date(text: str, pattern: str) -> str | None:
+def _find_date(text: str, pattern: str) -> tuple[str | None, str | None]:
+    from tender_times import clock_after_date
+
     match = re.search(pattern, text, re.IGNORECASE)
-    return _iso_date(match.group(0)) if match else None
+    if match and (day := _DATE_RE.search(match.group(0))):
+        value = _iso_date(day.group())
+        if value:
+            return value, clock_after_date(match.group(0)[day.end():])
+    return None, None
 
 
 def _extract_lots(text: str, title: str = "") -> list[str]:
@@ -185,12 +198,12 @@ def extract_detail(text: str, title: str = "") -> dict[str, Any]:
     documents = _snippet(clean, r"pi[èe]ces (?:administratives|techniques)|dossier administratif")
     lots = _extract_lots(clean, title)
     qualifications = _extract_qualifications(clean)
-    date_publication = _find_date(
+    date_publication, heure_publication = _find_date(
         clean, r"(?:date de )?(?:publication|mise en ligne|diffusion)[^.]{0,80}"
     )
-    date_remise = _find_date(
+    date_remise, heure_remise = _find_date(
         clean,
-        r"(?:date(?: de)? limite(?: de)? (?:remise|r[ée]ception|cl[ôo]ture)|"
+        r"(?:date(?: et heure)?(?: de)? limite(?: de)? (?:remise|r[ée]ception|cl[ôo]ture)|"
         r"remise des offres|cl[ôo]ture des offres)[^.]{0,80}",
     )
 
@@ -207,6 +220,8 @@ def extract_detail(text: str, title: str = "") -> dict[str, Any]:
         "delai_jours": delai_jours,
         "date_publication": date_publication,
         "date_remise": date_remise,
+        "heure_publication": heure_publication,
+        "heure_remise": heure_remise,
         "lots": lots,
         "qualifications_exigees": qualifications,
         "penalties": bool(penalty),

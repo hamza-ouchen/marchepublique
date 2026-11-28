@@ -13,6 +13,9 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://soukna:soukna@localhost:5432/soukna")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "codestral-latest")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mistral").strip().lower()
+EVERYAPI_API_KEY = os.getenv("EVERYAPI_API_KEY", "")
+EVERYAPI_MODEL = os.getenv("EVERYAPI_MODEL", "claude-haiku-4-5")
 # Tarification LLM (USD / million de tokens) pour le coût d'observabilité.
 LLM_PRICE_INPUT = float(os.getenv("LLM_PRICE_INPUT", "0.3"))
 LLM_PRICE_OUTPUT = float(os.getenv("LLM_PRICE_OUTPUT", "0.9"))
@@ -22,8 +25,12 @@ LLM_PRICE_OUTPUT = float(os.getenv("LLM_PRICE_OUTPUT", "0.9"))
 LLM_ENABLED = True
 
 
+def llm_key_present() -> bool:
+    return bool(EVERYAPI_API_KEY if LLM_PROVIDER == "everyapi" else MISTRAL_API_KEY)
+
+
 def llm_ready() -> bool:
-    return bool(MISTRAL_API_KEY) and LLM_ENABLED
+    return llm_key_present() and LLM_ENABLED
 
 
 # --- Canal WhatsApp (Cloud API Meta) ---------------------------------

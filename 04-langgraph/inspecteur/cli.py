@@ -109,6 +109,17 @@ def main(argv: list[str] | None = None) -> int:
                     help="Désactiver le repli aomaroc (portail uniquement)")
     ap.add_argument("--reset-walk", action="store_true",
                     help="Recommencer la marche du listing à la page 1")
+    ap.add_argument("--daily-missing", action="store_true",
+                    help="Job quotidien complet : offres en cours absentes de la base "
+                         "-> dossiers/documents -> extraction -> enrichissement")
+    ap.add_argument("--company", default="EXPLEO-IT-001",
+                    help="Entreprise cible pour la collecte DCE")
+    ap.add_argument("--collect-date", default=None, help="Date du run (YYYY-MM-DD)")
+    ap.add_argument("--docs-minutes", type=float, default=240,
+                    help="Budget temps de la collecte documentaire")
+    ap.add_argument("--skip-scrape", action="store_true")
+    ap.add_argument("--skip-audit", action="store_true")
+    ap.add_argument("--skip-documents", action="store_true")
     args = ap.parse_args(argv)
 
     if args.env_file:
@@ -118,6 +129,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.full:
         from . import pipeline
         return pipeline.run_full(args)
+
+    if args.daily_missing:
+        from . import daily_missing
+        resume = daily_missing.run(
+            company_id=args.company,
+            collect_date=args.collect_date,
+            docs_minutes=args.docs_minutes,
+            workers=6,
+            skip_scrape=args.skip_scrape,
+            skip_audit=args.skip_audit,
+            skip_documents=args.skip_documents,
+        )
+        print(json.dumps(resume, ensure_ascii=False, indent=2, default=str))
+        return 0
 
     if args.full_job or args.walk_only or args.status_only or args.audit_only \
             or args.docs_only or args.fields_only:

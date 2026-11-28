@@ -90,11 +90,11 @@
         "className": "",
         "data": {
           "sourceHandle": {
-            "dataType": "StructuredOutput",
-            "id": "StructuredOutput-KNSTo",
-            "name": "dataframe_output",
+            "dataType": "Agent",
+            "id": "Agent-kbIvd",
+            "name": "response",
             "output_types": [
-              "DataFrame"
+              "Message"
             ]
           },
           "targetHandle": {
@@ -108,10 +108,10 @@
             "type": "other"
           }
         },
-        "id": "xy-edge__StructuredOutput-KNSTo{œdataTypeœ:œStructuredOutputœ,œidœ:œStructuredOutput-KNSToœ,œnameœ:œdataframe_outputœ,œoutput_typesœ:[œDataFrameœ]}-ChatOutput-gnMdU{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-gnMdUœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}",
+        "id": "xy-edge__Agent-kbIvd{œdataTypeœ:œAgentœ,œidœ:œAgent-kbIvdœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-gnMdU{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-gnMdUœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}",
         "selected": false,
-        "source": "StructuredOutput-KNSTo",
-        "sourceHandle": "{œdataTypeœ:œStructuredOutputœ,œidœ:œStructuredOutput-KNSToœ,œnameœ:œdataframe_outputœ,œoutput_typesœ:[œDataFrameœ]}",
+        "source": "Agent-kbIvd",
+        "sourceHandle": "{œdataTypeœ:œAgentœ,œidœ:œAgent-kbIvdœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}",
         "target": "ChatOutput-gnMdU",
         "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-gnMdUœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}"
       },

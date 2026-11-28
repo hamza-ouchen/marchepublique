@@ -1,11 +1,10 @@
 # =====================================================================
-# Fabrique LLM : Mistral si disponible, sinon mode heuristique (sans clé).
-# MISTRAL_MODEL=codestral-latest est le seul modèle actif sur la clé fournie
-# (mistral-small => 429, mistral-large => 403) — ne pas changer sans test.
+# Fabrique LLM : fournisseur configuré et repli heuristique.
 # =====================================================================
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 from typing import Any
 
 import requests
@@ -13,9 +12,31 @@ import requests
 from . import config
 
 
+class EveryAPIChat:
+    def invoke(self, prompt: str):
+        response = requests.post(
+            "https://api.everyapi.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {config.EVERYAPI_API_KEY}"},
+            json={
+                "model": config.EVERYAPI_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.0,
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return SimpleNamespace(
+            content=payload["choices"][0]["message"]["content"],
+            response_metadata={"token_usage": payload.get("usage") or {}},
+        )
+
+
 def make_llm():
     """Retourne (llm, mode). llm=None en mode heuristique."""
     if config.llm_ready():
+        if config.LLM_PROVIDER == "everyapi":
+            return EveryAPIChat(), "everyapi"
         try:
             from langchain_mistralai import ChatMistralAI
 
@@ -91,7 +112,8 @@ def call_llm_json(llm: Any, prompt: str,
         content = getattr(resp, "content", "") or ""
         parsed = extract_json(content)
         if parsed is not None:
-            return parsed, "mistral", extract_usage(resp)
+            mode = "everyapi" if isinstance(llm, EveryAPIChat) else "mistral"
+            return parsed, mode, extract_usage(resp)
     except Exception:  # 429/403/réseau : repli silencieux mais tracé
         pass
     return fallback, "heuristic", None
@@ -110,6 +132,8 @@ def mistral_judge(expected: dict[str, Any], actual: dict[str, Any]) -> dict[str,
         '{"verdict": "pass" or "fail", "score": 0-100, "reasoning": "..."}'
     )
     try:
+        if config.LLM_PROVIDER == "everyapi":
+            return extract_json(EveryAPIChat().invoke(prompt).content)
         r = requests.post(
             "https://api.mistral.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {config.MISTRAL_API_KEY}"},

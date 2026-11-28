@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS tender_documents (
     doc_type      TEXT CHECK (doc_type IN ('CPS','DCE','AVIS','ADDITIF','PV')),
     filename      TEXT,
     mime          TEXT,
-    storage_path  TEXT NOT NULL,
+    storage_path  TEXT,
     sha256        TEXT NOT NULL UNIQUE,
     size_bytes    BIGINT,
     pages         INTEGER,
@@ -131,7 +131,7 @@ def active_profiles() -> list[dict[str, Any]]:
     """Profils des clients actifs (schéma officiel 'entreprises', repli 'companies')."""
     try:
         rows = query(
-            "SELECT secteur, region, capacite_mad FROM entreprises "
+            "SELECT secteur, region, capacite_mad FROM company_matching_profiles "
             "WHERE lower(coalesce(statut,'actif')) IN ('actif','essai')"
         )
         if rows:
@@ -251,11 +251,11 @@ def insert_document(**d: Any) -> int:
 
 
 def replace_sections(document_id: int, sections: list[dict[str, Any]]) -> int:
-    execute("DELETE FROM cps_sections WHERE document_id = %s", (document_id,))
+    execute("DELETE FROM cps_sections WHERE document_id = %s AND COALESCE(to_jsonb(cps_sections)->'legacy_sections','[]'::jsonb) = '[]'::jsonb", (document_id,))
     for s in sections:
         execute(
             "INSERT INTO cps_sections (document_id, section_no, numero, titre, texte, "
-            "pages_section) VALUES (%s,%s,%s,%s,%s,%s)",
+            "pages_section) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (document_id, section_no) DO NOTHING",
             (document_id, s["section_no"], s.get("numero"), s.get("titre"),
              s["texte"], s.get("pages_section")),
         )
@@ -271,27 +271,40 @@ def offer_exists(reference: str) -> bool:
                       (reference,)))
 
 
+def offer_type_from_reference(reference: str, source_url: str | None = None) -> str:
+    """Nature de l'avis : appel d'offres / consultation / bon de commande."""
+    indice = f"{reference or ''} {source_url or ''}".lower()
+    if "bdc:" in indice or "/bdc/" in indice or "bon-de-commande" in indice:
+        return "bon_de_commande"
+    if "consultation:" in indice or "refconsultation=" in indice or "consultation/" in indice:
+        return "consultation"
+    return "appel_offres"
+
+
 def upsert_offer(*, reference: str, organisme: str, objet: str, secteur: str,
-                 region: str, montant_mad: float | None, date_remise: Any,
-                 statut: str, source_url: str, date_collecte: Any) -> None:
+                  region: str, montant_mad: float | None, date_remise: Any,
+                  statut: str, source_url: str, date_collecte: Any,
+                  offer_type: str | None = None) -> None:
     """Upsert idempotent d'une offre du listing portail."""
+    nature = offer_type or offer_type_from_reference(reference, source_url)
     execute(
         """
         INSERT INTO tenders (reference, organisme, objet, secteur, region,
                              montant_mad, caution_mad, lots, qualifications_exigees,
                              delai_jours, date_publication, date_remise, date_collecte,
-                             statut, source, source_url, cree_le, mis_a_jour_le)
-        VALUES (%s,%s,%s,%s,%s,%s,NULL,%s,%s,0,NULL,%s,%s,%s,'portail',%s,now(),NULL)
+                             statut, source, source_url, offer_type, cree_le, mis_a_jour_le)
+        VALUES (%s,%s,%s,%s,%s,%s,NULL,%s,%s,0,NULL,%s,%s,%s,'portail',%s,%s,now(),NULL)
         ON CONFLICT (reference) DO UPDATE SET
             organisme=EXCLUDED.organisme, objet=EXCLUDED.objet,
             secteur=EXCLUDED.secteur, region=EXCLUDED.region,
             montant_mad=EXCLUDED.montant_mad,
             date_remise=EXCLUDED.date_remise, date_collecte=EXCLUDED.date_collecte,
             statut=EXCLUDED.statut, source_url=EXCLUDED.source_url,
+            offer_type=EXCLUDED.offer_type,
             mis_a_jour_le=now()
         """,
         (reference, organisme, objet, secteur, region, montant_mad,
-         [], [], date_remise, date_collecte, statut, source_url),
+         [], [], date_remise, date_collecte, statut, source_url, nature),
     )
 
 

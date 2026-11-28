@@ -193,6 +193,7 @@ def kb_hits_only(monkeypatch):
          "topic": "tarifs", "similarity": 0.71},
     ])
     monkeypatch.setattr(faq.config, "MISTRAL_API_KEY", "")  # LLM absent → repli
+    monkeypatch.setattr(faq.config, "EVERYAPI_API_KEY", "")
 
 
 def test_faq_node_no_hits_never_invents(kb_hits_only, monkeypatch):

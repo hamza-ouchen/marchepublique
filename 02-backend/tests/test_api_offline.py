@@ -120,12 +120,10 @@ def _patch_cron(monkeypatch, secret: str) -> None:
     monkeypatch.setattr(cfg, "CRON_SECRET", secret)
     monkeypatch.setattr("api.config", cfg)
 
-    async def _noop() -> None:
-        return None
-
-    # On neutralise la tâche de fond : les tests ne doivent jamais
-    # exécuter le graphe (conftest interdit le contact DB).
-    monkeypatch.setattr("api._pipeline_background_task", _noop)
+    monkeypatch.setattr("api.list_daily_companies", lambda **_: ["test-company"])
+    monkeypatch.setattr("api.enqueue", lambda company, mode, collecte: {
+        "company_id": company, "mode": mode, "collecte": collecte, "state": "queued",
+    })
 
 
 def test_cron_run_disabled_without_secret(monkeypatch):
@@ -151,5 +149,8 @@ def test_cron_run_missing_header_rejected(monkeypatch):
 def test_cron_run_ok_starts_background(monkeypatch):
     _patch_cron(monkeypatch, "real-cron-secret")
     r = client.post("/cron/run", headers={"X-Cron-Secret": "real-cron-secret"})
-    assert r.status_code == 200
-    assert r.json() == {"started": True, "mode": "cron"}
+    assert r.status_code == 202
+    corps = r.json()
+    assert corps["count"] == 1
+    assert corps["companies"] == ["test-company"]
+    assert corps["jobs"][0]["state"] == "queued"

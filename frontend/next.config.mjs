@@ -13,6 +13,9 @@ const SANS_PREFIXE = [
   "companies",
   "waitlist",
   "sources",
+  "sectors",
+  "observability",
+  "monitoring",
   "cron",
 ];
 

@@ -427,10 +427,13 @@ def update_company_profile(company_id: str, *, name: str | None = None,
 # Tenders (table Supabase pré-existante, schéma richer que opportunities)
 # -----------------------------------------------------------------------
 
-def tenders_list(*, sector: str | None = None, region: str | None = None,
-                 statut: str | None = None, min_amount: float | None = None,
-                 q: str | None = None, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
-    sql = "SELECT * FROM tenders WHERE 1=1"
+def _tenders_where(*, sector: str | None = None, region: str | None = None,
+                   statut: str | None = None, offer_type: str | None = None,
+                   min_amount: float | None = None, q: str | None = None,
+                   date_from: str | None = None, date_to: str | None = None,
+                   min_score: int | None = None, max_score: int | None = None,
+                   company_id: str | None = None) -> tuple[str, list[Any]]:
+    sql = " WHERE 1=1"
     params: list[Any] = []
     if sector:
         sql += " AND secteur ILIKE %s"
@@ -441,43 +444,95 @@ def tenders_list(*, sector: str | None = None, region: str | None = None,
     if statut:
         sql += " AND statut = %s"
         params.append(statut)
+    if offer_type:
+        sql += " AND offer_type = %s"
+        params.append(offer_type)
     if min_amount is not None:
         sql += " AND (montant_mad IS NULL OR montant_mad >= %s)"
         params.append(min_amount)
     if q:
         sql += " AND (objet ILIKE %s OR organisme ILIKE %s OR reference ILIKE %s)"
         params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
-    sql += " ORDER BY date_remise NULLS LAST, cree_le DESC LIMIT %s OFFSET %s"
+    if date_from:
+        sql += " AND date_remise >= %s::date"
+        params.append(date_from)
+    if date_to:
+        sql += " AND date_remise <= %s::date"
+        params.append(date_to)
+    # Les scores sont propres à une entreprise. Sans company_id, le filtre
+    # porte sur n'importe quel score calculé pour l'offre.
+    score_sql = ""
+    score_params: list[Any] = []
+    if company_id:
+        score_sql = " AND s.company_id = %s"
+        score_params.append(company_id)
+    if min_score is not None:
+        sql += (" AND EXISTS (SELECT 1 FROM scores s WHERE s.reference = tenders.reference"
+                + score_sql + " AND s.match_total >= %s)")
+        params.extend(score_params + [min_score])
+    if max_score is not None:
+        sql += (" AND EXISTS (SELECT 1 FROM scores s WHERE s.reference = tenders.reference"
+                + score_sql + " AND s.match_total <= %s)")
+        params.extend(score_params + [max_score])
+    return sql, params
+
+
+def tenders_list(*, sector: str | None = None, region: str | None = None,
+                 statut: str | None = None, offer_type: str | None = None,
+                 min_amount: float | None = None, q: str | None = None,
+                 date_from: str | None = None, date_to: str | None = None,
+                 min_score: int | None = None, max_score: int | None = None,
+                 company_id: str | None = None,
+                 limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
+    where, params = _tenders_where(
+        sector=sector, region=region, statut=statut, offer_type=offer_type,
+        min_amount=min_amount, q=q, date_from=date_from, date_to=date_to,
+        min_score=min_score, max_score=max_score, company_id=company_id,
+    )
+    sql = "SELECT tenders.* FROM tenders" + where
+    sql += " ORDER BY tenders.date_remise NULLS LAST, tenders.cree_le DESC LIMIT %s OFFSET %s"
     params.extend([limit, offset])
     return query(sql, tuple(params))
 
 
 def tenders_count(*, sector: str | None = None, region: str | None = None,
-                  statut: str | None = None, min_amount: float | None = None,
-                  q: str | None = None) -> int:
-    sql = "SELECT count(*) AS n FROM tenders WHERE 1=1"
-    params: list[Any] = []
-    if sector:
-        sql += " AND secteur ILIKE %s"
-        params.append(f"%{sector}%")
-    if region:
-        sql += " AND region ILIKE %s"
-        params.append(f"%{region}%")
-    if statut:
-        sql += " AND statut = %s"
-        params.append(statut)
-    if min_amount is not None:
-        sql += " AND (montant_mad IS NULL OR montant_mad >= %s)"
-        params.append(min_amount)
-    if q:
-        sql += " AND (objet ILIKE %s OR organisme ILIKE %s OR reference ILIKE %s)"
-        params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
-    return query(sql, tuple(params))[0]["n"]
+                  statut: str | None = None, offer_type: str | None = None,
+                  min_amount: float | None = None, q: str | None = None,
+                  date_from: str | None = None, date_to: str | None = None,
+                  min_score: int | None = None, max_score: int | None = None,
+                  company_id: str | None = None) -> int:
+    where, params = _tenders_where(
+        sector=sector, region=region, statut=statut, offer_type=offer_type,
+        min_amount=min_amount, q=q, date_from=date_from, date_to=date_to,
+        min_score=min_score, max_score=max_score, company_id=company_id,
+    )
+    return query("SELECT count(*) AS n FROM tenders" + where, tuple(params))[0]["n"]
 
 
 def tenders_get(reference: str) -> dict[str, Any] | None:
     rows = query("SELECT * FROM tenders WHERE reference = %s", (reference,))
     return rows[0] if rows else None
+
+
+def tenders_create(payload: dict[str, Any]) -> dict[str, Any]:
+    """Création/upsert manuelle (admin) d'un tender, idempotente par reference."""
+    columns = (
+        "reference", "organisme", "objet", "secteur", "region", "montant_mad",
+        "caution_mad", "lots", "qualifications_exigees", "delai_jours",
+        "date_publication", "date_remise", "date_collecte", "statut",
+        "source", "source_url", "offer_type",
+    )
+    values = tuple(payload.get(col) for col in columns)
+    updates = ", ".join(
+        f"{col}=EXCLUDED.{col}" for col in columns if col != "reference"
+    )
+    execute(
+        "INSERT INTO tenders (" + ", ".join(columns) + ") VALUES ("
+        + ", ".join(["%s"] * len(columns)) + ") "
+        + "ON CONFLICT (reference) DO UPDATE SET " + updates + ", mis_a_jour_le=now()",
+        values,
+    )
+    return tenders_get(str(payload["reference"])) or {}
 
 
 def sync_tenders_to_opportunities() -> dict[str, int]:
@@ -650,12 +705,12 @@ def cps_sections_list(document_id: int) -> list[dict[str, Any]]:
 
 def cps_sections_replace(document_id: int, sections: list[dict[str, Any]]) -> int:
     """Remplace toutes les sections d'un document (idempotent)."""
-    execute("DELETE FROM cps_sections WHERE document_id = %s", (document_id,))
+    execute("DELETE FROM cps_sections WHERE document_id = %s AND COALESCE(to_jsonb(cps_sections)->'legacy_sections','[]'::jsonb) = '[]'::jsonb", (document_id,))
     n = 0
     for s in sections:
         execute(
             "INSERT INTO cps_sections (document_id, section_no, numero, titre, texte, pages_section) "
-            "VALUES (%s,%s,%s,%s,%s,%s)",
+            "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (document_id, section_no) DO NOTHING",
             (document_id, s["section_no"], s.get("numero"), s.get("titre"),
              s["texte"], s.get("pages_section")),
         )

@@ -36,7 +36,7 @@ def record_failure(reference: str, source_url: str, statut: str,
     try:
         db.insert_document(
             reference=reference, doc_type=None, filename=None, mime=None,
-            storage_path=f"{reference.replace('/', '_')}/(absent)",
+            storage_path=None,
             sha256=fake_sha, source_url=source_url or None,
             statut=statut, echec_raison=raison, sections=0, char_count=0)
     except Exception as exc:
@@ -142,10 +142,10 @@ def process_tender(tender: dict[str, Any], session: requests.Session,
         else:
             statut = "echec"
             echec_raison = "pdf illisible (aucune page)"
-        storage_path = f"{ref_dir}/{fname}"
+        storage_path = None
         if uploader is not None:
             try:
-                storage_path = uploader(storage_path, data)
+                storage_path = uploader(f"{ref_dir}/{fname}", data)
             except Exception as exc:
                 statut = "echec"
                 echec_raison = f"storage_upload_failed: {str(exc)[:150]}"

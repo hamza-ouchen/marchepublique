@@ -190,10 +190,10 @@ def collect(*, dry_run: bool = False,
         statut = "extracted" if has_text else "echec"
         echec_raison = None if has_text else "texte insuffisant (< 100 chars)"
 
-        storage_path = f"{reference}/{filename}"
+        storage_path = None
         if uploader is not None:
             try:
-                storage_path = uploader(storage_path, data)
+                storage_path = uploader(f"{reference}/{filename}", data)
                 uploaded += 1
             except Exception as exc:
                 statut = "echec"
